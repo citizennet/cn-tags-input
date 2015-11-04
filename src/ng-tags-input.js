@@ -89,12 +89,12 @@
     return str.replace(new RegExp(expression, 'gi'), newSubstr);
   }
 
-  var tagsInput = angular.module('ngTagsInput', []);
+  var tagsInput = angular.module('cnTagsInput', []);
 
   /**
    * @ngdoc directive
    * @name tagsInput
-   * @module ngTagsInput
+   * @module cnTagsInput
    *
    * @description
    * Renders an input box with tag editing support.
@@ -255,7 +255,7 @@
         },
         replace: false,
         transclude: true,
-        templateUrl: 'ngTagsInput/tags-input.html',
+        templateUrl: 'cnTagsInput/tags-input.html',
         controller: ["$scope", "$attrs", "$element", function($scope, $attrs, $element) {
           tagsInputConfig.load('tagsInput', $scope, $attrs, {
             placeholder: [String, 'Add a tag'],
@@ -679,7 +679,7 @@
   /**
    * @ngdoc directive
    * @name autoComplete
-   * @module ngTagsInput
+   * @module cnTagsInput
    *
    * @description
    * Provides autocomplete support for the tagsInput directive.
@@ -972,7 +972,7 @@
         },
         templateUrl: function(elem, attrs) {
           //console.log('attrs:', attrs);
-          return attrs.customTemplateUrl || 'ngTagsInput/auto-complete.html';
+          return attrs.customTemplateUrl || 'cnTagsInput/auto-complete.html';
         },
         link: function(scope, element, attrs, tagsInputCtrl) {
           var hotkeys = [KEYS.enter, KEYS.tab, KEYS.escape, KEYS.up, KEYS.down],
@@ -1183,7 +1183,7 @@
   /**
    * @ngdoc directive
    * @name tiTranscludeAppend
-   * @module ngTagsInput
+   * @module cnTagsInput
    *
    * @description
    * Re-creates the old behavior of ng-transclude. Used internally by tagsInput directive.
@@ -1199,7 +1199,7 @@
   /**
    * @ngdoc directive
    * @name tiAutosize
-   * @module ngTagsInput
+   * @module cnTagsInput
    *
    * @description
    * Automatically sets the input's width so its content is always visible. Used internally by tagsInput directive.
@@ -1254,7 +1254,7 @@
   /**
    * @ngdoc service
    * @name tagsInputConfig
-   * @module ngTagsInput
+   * @module cnTagsInput
    *
    * @description
    * Sets global configuration settings for both tagsInput and autoComplete directives. It's also used internally to parse and
@@ -1355,7 +1355,7 @@
 
   /* HTML templates */
   tagsInput.run(["$templateCache", function($templateCache) {
-    $templateCache.put('ngTagsInput/tags-input.html',
+    $templateCache.put('cnTagsInput/tags-input.html',
         "\
         <ul class=\"list-group cn-autocomplete-list\" \
             ng-if=\"options.tagsStyle === 'list' && tagList.items.length && !options.hideTags\">\
@@ -1435,7 +1435,7 @@
         </div>"
     );
 
-    $templateCache.put('ngTagsInput/auto-complete.html',
+    $templateCache.put('cnTagsInput/auto-complete.html',
         "<div ng-if=\"!suggestionList.items.length && !options.groupBy\" \
              ng-class=\"{open: suggestionList.visible}\">\
           <ul class=\"autocomplete dropdown-menu\">\
