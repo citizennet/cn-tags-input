@@ -514,7 +514,7 @@
                 return;
               }
             }
-            else if(value || value === 0) {
+            else if(angular.isDefined(value)) {
               if(_.isArray(value)) {
                 if(value.length) {
                   if(options.modelType === 'object') {
