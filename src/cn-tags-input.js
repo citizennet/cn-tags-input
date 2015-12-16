@@ -73,9 +73,9 @@
       for(; i < l; i++) {
         // I'm aware of the internationalization issues regarding toLowerCase()
         // but I couldn't come up with a better solution right now
-        if(_.has(obj, key)
-            && _.has(array[i], key)
-            && angular.toJson(array[i][key]).toLowerCase() === angular.toJson(obj[key]).toLowerCase()) {
+        if(_.has(obj, key) &&
+            _.has(array[i], key) &&
+            angular.toJson(array[i][key]).toLowerCase() === angular.toJson(obj[key]).toLowerCase()) {
           item = array[i];
           break;
         }
@@ -87,6 +87,18 @@
   function replaceAll(str, substr, newSubstr) {
     var expression = substr.replace(/([.?*+^$[\]\\(){}|-])/g, '\\$1');
     return str.replace(new RegExp(expression, 'gi'), newSubstr);
+  }
+
+  function matchTagsWithModel(tags, model, valueProperty) {
+    //if(tags.length !== model.length) return false;
+    var match = true, i = 0, l = tags.length;
+    for(; i < l; i++) {
+      if(!angular.equals(tags[i][valueProperty], model[i])) {
+        match = false;
+        break;
+      }
+    }
+    return match;
   }
 
   var tagsInput = angular.module('cnTagsInput', []);
@@ -166,14 +178,14 @@
         tagIsValid = function(tag) {
           var tagText = getTagText(tag) + '';
 
-          return (!options.minLength || tagText.length >= options.minLength)
-          && (!options.maxLength || tagText.length <= options.maxLength)
-          && options.allowedTagsPattern.test(tagText)
-          && !findInObjectArray(
-              self.items,
-              tag,
-              _.has(tag, options.valueProperty) ? options.valueProperty : getTagText
-          );
+          return (!options.minLength || tagText.length >= options.minLength) &&
+                 (!options.maxLength || tagText.length <= options.maxLength) &&
+                 options.allowedTagsPattern.test(tagText) &&
+                 !findInObjectArray(
+                     self.items,
+                     tag,
+                     _.has(tag, options.valueProperty) ? options.valueProperty : getTagText
+                 );
         };
 
         self.items = [];
@@ -367,7 +379,7 @@
               $timeout(function(){
                 after.apply(this, args);
               });
-            }
+            };
           }
 
           events
@@ -399,8 +411,8 @@
                     }
                     else {
                       //ngModelCtrl.$setViewValue(e.$tag.value);
-                      scope.tags = _.has(e.$tag, options.valueProperty)
-                          ? e.$tag[options.valueProperty] : e.$tag[options.displayProperty];
+                      scope.tags = _.has(e.$tag, options.valueProperty) ?
+                          e.$tag[options.valueProperty] : e.$tag[options.displayProperty];
                     }
                     //scope.tags = [e.$tag];
                   }
@@ -466,9 +478,12 @@
                     var newVal = {};
                     newVal[options.displayProperty] = val;
                     newVal[options.valueProperty] = val;
-                    return tagList.items = [newVal];
+                    tagList.items = [newVal];
                   }
-                  return tagList.items = _.isArray(val) ? val : [val];
+                  else {
+                    tagList.items = _.isArray(val) ? val : [val];
+                  }
+                  return tagList.items;
                 }
               });
             }
@@ -493,6 +508,9 @@
               //console.log('array:', value, tagList.items);
               if(_.isArray(value)) {
                 if(value.length) {
+                  if(!matchTagsWithModel(tagList.items, scope.tags, options.valueProperty)) {
+                    scope.triggerInit(value, prev);
+                  }
                   if(tagList.items.length !== scope.tags.length) {
                     tagList.items = makeObjectArray(value, options.displayProperty, options.valueProperty);
                     if(options.arrayValueType !== 'object') {
@@ -662,7 +680,7 @@
           });
 
           function onFocus(e) {
-            e && e.preventDefault();
+            if(e) e.preventDefault();
 
             if(scope.ngDisabled) return;
 
@@ -714,7 +732,7 @@
             if(!_.isArray(keys)) keys = [keys];
             _.each(keys, function(key) {
               if(!filtered[key]) {
-                filtered[key] = []
+                filtered[key] = [];
               }
               filtered[key].push(item);
             });
@@ -1057,6 +1075,9 @@
             console.log('autoCompleteProcessBulk:', bulkTags);
 
             var tags = bulkTags.split(options.tagsInput.bulkDelimiter);
+            var addTag = function(data) {
+              if(data[0]) tagsInput.addTag(data[0]);
+            };
 
             // in case a query is involved...doesn't hurt to use even if not
             return Api.batch(function() {
@@ -1074,9 +1095,7 @@
                   tagsInput.addTag(results[0]);
                 }
                 else if(results.then) {
-                  results.then(function(data) {
-                    data[0] && tagsInput.addTag(data[0]);
-                  });
+                  results.then(addTag);
                 }
               }
             });
@@ -1162,8 +1181,8 @@
 
             if(suggestionList.visible) {
               // if autocomplete option was selected, or click/focus triggered outside of directive
-              if(($(e.target).closest('.suggestion').length || !$(e.target).closest(element[0]).length)
-                  && !(e.type === 'focusin' && !/^(input|select|textarea|button|a)$/i.test(e.target.tagName))) {
+              if(($(e.target).closest('.suggestion').length || !$(e.target).closest(element[0]).length) &&
+                  !(e.type === 'focusin' && !/^(input|select|textarea|button|a)$/i.test(e.target.tagName))) {
                 suggestionList.reset();
                 if(!/apply|digest/.test(scope.$root.$$phase)) scope.$apply();
               }
