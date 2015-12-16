@@ -1407,6 +1407,7 @@
                    placeholder=\"{{options.placeholder}}\" \
                    tabindex=\"{{options.tabindex}}\" \
                    ng-model=\"newTag.text\" \
+                   ng-model-options=\"{updateOn: 'default'}\" \
                    ng-change=\"newTagChange()\" \
                    ng-trim=\"false\" \
                    ng-class=\"{\
