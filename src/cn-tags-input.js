@@ -150,8 +150,8 @@
    * @param {string=} [tagsStyle='tags'] Default tags style
    */
   tagsInput.directive('tagsInput', [
-    "$timeout", "$document", "tagsInputConfig",
-    function($timeout, $document, tagsInputConfig) {
+    "$timeout", "$document", "tagsInputConfig", "$sce",
+    function($timeout, $document, tagsInputConfig, $sce) {
       function TagList(options, events) {
         var self = {}, getTagText, setTagText, tagIsValid;
 
@@ -442,6 +442,11 @@
 
           scope.getDisplayText = scope.itemFormatter || function(tag) {
             return tag && ((tag[options.displayProperty] || 'undefined') + '').trim();
+          };
+
+          scope.getDisplayHtml = function(tag) {
+            console.log('tag:', tag, scope.getDisplayText(tag), $sce.trustAsHtml(scope.getDisplayText(tag)));
+            return $sce.trustAsHtml(scope.getDisplayText(tag));
           };
 
           scope.track = function(tag) {
@@ -1060,9 +1065,10 @@
 
           scope.highlight = function(item, key) {
             var text = getItemText(item, key);
-            text = encodeHTML(text);
+            //text = encodeHTML(text);
             if(suggestionList.query && options.highlightMatchedText) {
-              text = replaceAll(text, encodeHTML(suggestionList.query), '<b>$&</b>');
+              //text = replaceAll(text, encodeHTML(suggestionList.query), '<b>$&</b>');
+              text = replaceAll(text, suggestionList.query, '<b>$&</b>');
             }
             return $sce.trustAsHtml('<a>' + text + '</a>');
           };
@@ -1386,7 +1392,7 @@
                     type=\"button\" class=\"close pull-right\">\
               <span>&times;</span>\
             </button>\
-            <span class=\"tag-item\">{{getDisplayText(tag) | trustAsHtml}}</span> \
+            <span class=\"tag-item\" ng-bind-html=\"getDisplayHtml(tag)\"/> \
           </li>\
         </ul>\
         <div class=\"host clearfix\"\
@@ -1418,9 +1424,7 @@
                    autocomplete=\"off\">\
             <span class=\"tag-item label {{options.tagClass}} label-block\"\
                   ng-if=\"options.tagsStyle !== 'list' && !options.hideTags && options.maxTags === 1 && tagList.items.length\">\
-              <span title=\"{{getDisplayText(tagList.items[0])}}\">\
-                {{getDisplayText(tagList.items[0]) | trustAsHtml}}\
-              </span> \
+              <span title=\"{{getDisplayText(tagList.items[0])}}\" ng-bind-html=\"getDisplayHtml(tagList.items[0])\"/> \
               <a class=\"remove-button\" \
                  ng-if=\"!ngDisabled && !options.dropdown\"\
                  ng-click=\"tagList.remove()\">\
@@ -1432,7 +1436,7 @@
               <li class=\"tag-item label {{options.tagClass}}\" \
                   ng-repeat=\"tag in tagList.items\" \
                   ng-class=\"{ selected: tag == tagList.selected }\">\
-                <span>{{getDisplayText(tag) | trustAsHtml}}</span> \
+                <span ng-bind-html=\"getDisplayHtml(tag)\"/> \
                 <a class=\"remove-button\" \
                    ng-if=\"!ngDisabled\"\
                    ng-click=\"tagList.remove($index)\">\
