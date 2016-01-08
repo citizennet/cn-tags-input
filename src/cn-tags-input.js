@@ -445,7 +445,7 @@
           };
 
           scope.getDisplayHtml = function(tag) {
-            console.log('tag:', tag, scope.getDisplayText(tag), $sce.trustAsHtml(scope.getDisplayText(tag)));
+            //console.log('tag:', tag, scope.getDisplayText(tag), $sce.trustAsHtml(scope.getDisplayText(tag)));
             return $sce.trustAsHtml(scope.getDisplayText(tag));
           };
 
