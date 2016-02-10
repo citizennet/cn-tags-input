@@ -279,7 +279,7 @@
             addOnEnter: [Boolean, true],
             addOnSpace: [Boolean, false],
             addOnComma: [Boolean, true],
-            addOnBlur: [Boolean, false],
+            addOnBlur: [Boolean, true],
             allowedTagsPattern: [RegExp, /.+/],
             enableEditingLastTag: [Boolean, false],
             required: [Boolean, false],
@@ -302,6 +302,8 @@
             showButton: [Boolean, false]
           });
 
+          console.log('$scope.itemFormatter:', $scope.itemFormatter);
+
           if($scope.itemFormatter) $scope.options.itemFormatter = $scope.itemFormatter;
 
           if($scope.options.tagsStyle === 'tags') {
@@ -317,7 +319,7 @@
           $scope.tagList = new TagList($scope.options, $scope.events);
 
           this.registerAutocomplete = function() {
-            var input = $element.find('input');
+            var input = $element.find('input.input');
             input.on('keydown', function(e) {
               $scope.events.trigger('input-keydown', e);
             });
@@ -327,7 +329,7 @@
                 return $scope.tagList.add(tag);
               },
               focusInput: function() {
-                //input[0].focus();
+                input[0].focus();
               },
               blurInput: function() {
                 input[0].blur();
@@ -445,7 +447,6 @@
           };
 
           scope.getDisplayHtml = function(tag) {
-            console.log('tag:', tag, scope.getDisplayText(tag), $sce.trustAsHtml(scope.getDisplayText(tag)));
             return $sce.trustAsHtml(scope.getDisplayText(tag));
           };
 
@@ -680,6 +681,7 @@
           element.find('div').on('click', function(e) {
             if(!$(e.target).closest('.suggestion').length) {
               e.preventDefault();
+              //console.log('input:', input);
               input[0].focus();
             }
           });
@@ -688,6 +690,8 @@
             if(e) e.preventDefault();
 
             if(scope.ngDisabled) return;
+
+            if(blurTimeout) $timeout.cancel(blurTimeout);
 
             scope.hasFocus = true;
             //console.log('onFocus:', input.val());
@@ -853,7 +857,6 @@
         };
 
         self.show = function() {
-          if(self.visible) return;
           self.selected = null;
           self.visible = true;
           self.select(0);
@@ -958,6 +961,7 @@
           self.select(--self.index);
         };
         self.select = function(index) {
+          //console.log('select:', index);
           var list = self.itemMap || self.items;
           if(index < 0) {
             index = list.length - 1;
@@ -974,7 +978,7 @@
           }
         };
 
-        self.reset();
+        //self.reset();
 
         return self;
       }
@@ -1125,8 +1129,8 @@
                 }
               })
               .on('input-focus', function(value) {
-                //console.log('input-focus:', options.minLength);
-                if(!options.minLength) {
+                //console.log('input-focus:', options.minLength, suggestionList.visible);
+                if(!suggestionList.visible && !options.minLength) {
                   suggestionList.load(value, tagsInput.getTags());
                 }
               })
@@ -1162,12 +1166,17 @@
                     handled = true;
                   }
                   else if(key === KEYS.escape) {
+                    //console.log('KEYS.escape:', KEYS.escape);
                     suggestionList.reset();
                     handled = true;
                   }
-                  else if(key === KEYS.enter/* || key === KEYS.tab*/) {
+                  else if(key === KEYS.enter) {
                     handled = scope.addSuggestion(e);
                   }
+                  // adding seems to prevent tab action, need to figure out a way around that before uncommenting
+                  //else if(key === KEYS.tab && options.tagsInput.addOnBlur) {
+                  //  scope.addSuggestion(e);
+                  //}
 
                   if(handled) {
                     e.preventDefault();
@@ -1445,7 +1454,7 @@
               </li>\
             </ul>\
             <button ng-if=\"options.showButton && options.dropdown\"\
-                    class=\"btn form-control-icon\" ng-disabled=\"ngDisabled\">\
+                    class=\"btn form-control-icon\" ng-disabled=\"ngDisabled\" tabindex=\"-1\">\
               <i class=\"{{options.dropdownStyle}}\"></i>\
             </button>\
           </div>\
