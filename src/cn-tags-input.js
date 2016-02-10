@@ -279,7 +279,7 @@
             addOnEnter: [Boolean, true],
             addOnSpace: [Boolean, false],
             addOnComma: [Boolean, true],
-            addOnBlur: [Boolean, true],
+            addOnBlur: [Boolean, false],
             allowedTagsPattern: [RegExp, /.+/],
             enableEditingLastTag: [Boolean, false],
             required: [Boolean, false],
@@ -301,8 +301,6 @@
             bulkPlaceholder: [String, 'Enter a list separated by commas or new lines'],
             showButton: [Boolean, false]
           });
-
-          console.log('$scope.itemFormatter:', $scope.itemFormatter);
 
           if($scope.itemFormatter) $scope.options.itemFormatter = $scope.itemFormatter;
 
@@ -961,7 +959,6 @@
           self.select(--self.index);
         };
         self.select = function(index) {
-          //console.log('select:', index);
           var list = self.itemMap || self.items;
           if(index < 0) {
             index = list.length - 1;
@@ -1166,7 +1163,6 @@
                     handled = true;
                   }
                   else if(key === KEYS.escape) {
-                    //console.log('KEYS.escape:', KEYS.escape);
                     suggestionList.reset();
                     handled = true;
                   }
