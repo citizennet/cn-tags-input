@@ -1093,13 +1093,20 @@
 
                 var results = scope.source({$query: tags[i]});
 
-                if(_.isArray(results) && results[0]) {
-                  if(!options.skipFiltering) {
-                    var filterBy = {};
-                    filterBy[options.tagsInput.displayProperty] = tags[i];
-                    results = $filter('cnFilter')(results, filterBy);
+                if(_.isArray(results)) {
+                  if(results.length) {
+                    if(!options.skipFiltering) {
+                      var filterBy = {};
+                      filterBy[options.tagsInput.displayProperty] = tags[i];
+                      results = $filter('cnFilter')(results, filterBy);
+                    }
+                    tagsInput.addTag(results[0]);
                   }
-                  tagsInput.addTag(results[0]);
+                  else if(!options.tagsInput.addFromAutocompleteOnly) {
+                    var tag = {};
+                    tag[options.tagsInput.displayProperty] = tags[i];
+                    tagsInput.addTag(tag);
+                  }
                 }
                 else if(results.then) {
                   results.then(addTag);
