@@ -1105,6 +1105,7 @@
                   else if(!options.tagsInput.addFromAutocompleteOnly) {
                     var tag = {};
                     tag[options.tagsInput.displayProperty] = tags[i];
+                    tag[options.tagsInput.valueProperty] = tags[i];
                     tagsInput.addTag(tag);
                   }
                 }
