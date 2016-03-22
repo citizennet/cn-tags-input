@@ -1436,8 +1436,9 @@
                    ti-autosize=\"\"\
                    autocomplete=\"off\">\
             <span class=\"tag-item label {{options.tagClass}} label-block\"\
-                  ng-if=\"options.tagsStyle !== 'list' && !options.hideTags && options.maxTags === 1 && tagList.items.length\">\
-              <span title=\"{{getDisplayText(tagList.items[0])}}\" ng-bind-html=\"getDisplayHtml(tagList.items[0])\"/> \
+                  ng-if=\"options.tagsStyle !== 'list' && !options.hideTags && options.maxTags === 1 && tagList.items.length\"\
+                  title=\"{{getDisplayText(tagList.items[0])}}\"\
+                  ng-bind-html=\"getDisplayHtml(tagList.items[0])\">\
               <a class=\"remove-button\" \
                  ng-if=\"!ngDisabled && !options.dropdown\"\
                  ng-click=\"tagList.remove()\">\
