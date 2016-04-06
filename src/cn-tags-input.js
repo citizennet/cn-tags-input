@@ -867,7 +867,8 @@
           }
 
           var promise,
-              filterBy = {},
+              //filterBy = {},
+              filterBy = query,
               groups,
               processItems = function(items) {
                 if(promise && promise !== lastPromise) {
@@ -876,7 +877,7 @@
 
                 if(scope.searchKeys) {
                   scope.isGroups = true;
-                  filterBy = query;
+                  //filterBy = query;
                   items = splitListItems(items);
                 }
                 if(_.isObject(items) && !_.isArray(items)) {
@@ -898,7 +899,7 @@
                   self.itemMap = mapIndexes(items);
                 }
                 else {
-                  filterBy[options.tagsInput.displayProperty] = query;
+                  //filterBy[options.tagsInput.displayProperty] = query;
                   items = makeObjectArray(items.data || items, options.tagsInput.displayProperty);
                   items = getDifference(items, tags);
                   //console.log('options.skipFiltering:', options.skipFiltering);
@@ -1096,8 +1097,9 @@
                 if(_.isArray(results)) {
                   if(results.length) {
                     if(!options.skipFiltering) {
-                      var filterBy = {};
-                      filterBy[options.tagsInput.displayProperty] = tags[i];
+                      //var filterBy = {};
+                      var filterBy = tags[i];
+                      //filterBy[options.tagsInput.displayProperty] = tags[i];
                       results = $filter('cnFilter')(results, filterBy);
                     }
                     tagsInput.addTag(results[0]);
