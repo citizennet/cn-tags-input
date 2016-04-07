@@ -101,6 +101,12 @@
     return match;
   }
 
+  function selectAll(input) {
+    if(input.value) {
+      input.setSelectionRange(0, input.value.length);
+    }
+  }
+
   var tagsInput = angular.module('cnTagsInput', []);
 
   /**
@@ -388,7 +394,7 @@
               .on('tag-changed', beforeAndAfter(scope.onBeforeTagChanged, scope.onTagChanged))
               .on('tag-init', scope.onInit)
               .on('tag-added tag-removed', function(e) {
-                scope.newTag.text = '';
+                //scope.newTag.text = '';
                 if(options.modelType === 'array') {
                   //console.log('options.arrayValueType:', options.arrayValueType);
                   if(options.arrayValueType === 'object') {
@@ -686,8 +692,9 @@
 
           function onFocus(e) {
             if(e) e.preventDefault();
-
             if(scope.ngDisabled) return;
+
+            selectAll(e.target);
 
             if(blurTimeout) $timeout.cancel(blurTimeout);
 
@@ -832,7 +839,7 @@
               return item[options.tagsInput.displayProperty] !== '';
             });
           }
-          //console.log('options.tagsInput.valueProperty:', options.tagsInput.valueProperty);
+          //console.log('findInObjectArray:', options.tagsInput.getTagText(array1[0]), options.tagsInput.getTagText(array2[0]));
           return array1.filter(function(item) {
             return !findInObjectArray(
                 array2,
@@ -1041,18 +1048,19 @@
           scope.addSuggestion = function(e) {
             //console.log('addSuggestion:', e);
             e.preventDefault();
+
+            selectAll(e.target);
+
             var added = false;
 
             if(suggestionList.selected) {
               tagsInput.addTag(suggestionList.selected);
 
+              console.log('options.tagsInput.maxTags, tagsInput.getTags().length, options.minLength:', options.tagsInput.maxTags, tagsInput.getTags().length, options.minLength);
               if(!options.tagsInput.maxTags || tagsInput.getTags().length < options.tagsInput.maxTags) {
-                if(options.minLength) {
-                  suggestionList.reset();
-                }
-                else {
-                  suggestionList.load('', tagsInput.getTags());
-                }
+                var i = suggestionList.items.indexOf(suggestionList.selected);
+                suggestionList.items.splice(i, 1);
+                suggestionList.select(i);
                 tagsInput.focusInput();
               }
               else {
@@ -1119,14 +1127,6 @@
           });
 
           tagsInput
-              .on('tag-added invalid-tag', function() {
-                if(options.minLength) {
-                  suggestionList.reset();
-                }
-                else {
-                  suggestionList.load('', tagsInput.getTags());
-                }
-              })
               .on('input-change', function(value) {
                 if(value || !options.minLength) {
                   suggestionList.load(value, tagsInput.getTags());
