@@ -1091,36 +1091,49 @@
             console.log('autoCompleteProcessBulk:', bulkTags);
 
             var tags = bulkTags.split(options.tagsInput.bulkDelimiter);
-            var addTag = function(data) {
-              if(data[0]) tagsInput.addTag(data[0]);
+
+            var addTags = function(i) {
+              return function(data) {
+                _.times(i, function(i) {
+                  if(data[i]) tagsInput.addTag(data[i]);
+                });
+              };
             };
 
             // in case a query is involved...doesn't hurt to use even if not
             return Api.batch(function() {
               for(var i = 0, l = tags.length; i < l; i++) {
                 if(options.tagsInput.maxTags && tagsInput.getTags().length >= options.tagsInput.maxTags) break;
+                var tag = tags[i];
+                var times = 1;
+                var multiple = tags[i].match(/(.*) ?\((\d+)\)$/);
 
-                var results = scope.source({$query: tags[i]});
+                if(multiple) {
+                  tag = multiple[1];
+                  times = parseInt(multiple[2]);
+                }
+
+                var results = scope.source({$query: tag});
 
                 if(_.isArray(results)) {
                   if(results.length) {
                     if(!options.skipFiltering) {
                       //var filterBy = {};
-                      var filterBy = tags[i];
+                      var filterBy = tag;
                       //filterBy[options.tagsInput.displayProperty] = tags[i];
                       results = $filter('cnFilter')(results, filterBy);
                     }
-                    tagsInput.addTag(results[0]);
+                    addTags(times)(results);
                   }
                   else if(!options.tagsInput.addFromAutocompleteOnly) {
-                    var tag = {};
-                    tag[options.tagsInput.displayProperty] = tags[i];
-                    tag[options.tagsInput.valueProperty] = tags[i];
-                    tagsInput.addTag(tag);
+                    var newTag = {};
+                    newTag[options.tagsInput.displayProperty] = tag;
+                    newTag[options.tagsInput.valueProperty] = tag;
+                    tagsInput.addTag(newTag);
                   }
                 }
                 else if(results.then) {
-                  results.then(addTag);
+                  results.then(addTags(times));
                 }
               }
             });
