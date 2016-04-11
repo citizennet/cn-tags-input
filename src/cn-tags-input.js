@@ -101,6 +101,12 @@
     return match;
   }
 
+  function selectAll(input) {
+    if(input.value) {
+      input.setSelectionRange(0, input.value.length);
+    }
+  }
+
   var tagsInput = angular.module('cnTagsInput', []);
 
   /**
@@ -388,7 +394,7 @@
               .on('tag-changed', beforeAndAfter(scope.onBeforeTagChanged, scope.onTagChanged))
               .on('tag-init', scope.onInit)
               .on('tag-added tag-removed', function(e) {
-                scope.newTag.text = '';
+                //scope.newTag.text = '';
                 if(options.modelType === 'array') {
                   //console.log('options.arrayValueType:', options.arrayValueType);
                   if(options.arrayValueType === 'object') {
@@ -686,8 +692,9 @@
 
           function onFocus(e) {
             if(e) e.preventDefault();
-
             if(scope.ngDisabled) return;
+
+            selectAll(e.target);
 
             if(blurTimeout) $timeout.cancel(blurTimeout);
 
@@ -832,7 +839,7 @@
               return item[options.tagsInput.displayProperty] !== '';
             });
           }
-          //console.log('options.tagsInput.valueProperty:', options.tagsInput.valueProperty);
+          //console.log('findInObjectArray:', options.tagsInput.getTagText(array1[0]), options.tagsInput.getTagText(array2[0]));
           return array1.filter(function(item) {
             return !findInObjectArray(
                 array2,
@@ -867,7 +874,8 @@
           }
 
           var promise,
-              filterBy = {},
+              //filterBy = {},
+              filterBy = query,
               groups,
               processItems = function(items) {
                 if(promise && promise !== lastPromise) {
@@ -876,7 +884,7 @@
 
                 if(scope.searchKeys) {
                   scope.isGroups = true;
-                  filterBy = query;
+                  //filterBy = query;
                   items = splitListItems(items);
                 }
                 if(_.isObject(items) && !_.isArray(items)) {
@@ -898,7 +906,7 @@
                   self.itemMap = mapIndexes(items);
                 }
                 else {
-                  filterBy[options.tagsInput.displayProperty] = query;
+                  //filterBy[options.tagsInput.displayProperty] = query;
                   items = makeObjectArray(items.data || items, options.tagsInput.displayProperty);
                   items = getDifference(items, tags);
                   //console.log('options.skipFiltering:', options.skipFiltering);
@@ -1040,18 +1048,19 @@
           scope.addSuggestion = function(e) {
             //console.log('addSuggestion:', e);
             e.preventDefault();
+
+            selectAll(e.target);
+
             var added = false;
 
             if(suggestionList.selected) {
               tagsInput.addTag(suggestionList.selected);
 
+              console.log('options.tagsInput.maxTags, tagsInput.getTags().length, options.minLength:', options.tagsInput.maxTags, tagsInput.getTags().length, options.minLength);
               if(!options.tagsInput.maxTags || tagsInput.getTags().length < options.tagsInput.maxTags) {
-                if(options.minLength) {
-                  suggestionList.reset();
-                }
-                else {
-                  suggestionList.load('', tagsInput.getTags());
-                }
+                var i = suggestionList.items.indexOf(suggestionList.selected);
+                suggestionList.items.splice(i, 1);
+                suggestionList.select(i);
                 tagsInput.focusInput();
               }
               else {
@@ -1082,49 +1091,55 @@
             console.log('autoCompleteProcessBulk:', bulkTags);
 
             var tags = bulkTags.split(options.tagsInput.bulkDelimiter);
-            var addTag = function(data) {
-              if(data[0]) tagsInput.addTag(data[0]);
+
+            var addTags = function(i) {
+              return function(data) {
+                _.times(i, function(i) {
+                  if(data[i]) tagsInput.addTag(data[i]);
+                });
+              };
             };
 
             // in case a query is involved...doesn't hurt to use even if not
             return Api.batch(function() {
               for(var i = 0, l = tags.length; i < l; i++) {
                 if(options.tagsInput.maxTags && tagsInput.getTags().length >= options.tagsInput.maxTags) break;
+                var tag = tags[i];
+                var times = 1;
+                var multiple = tags[i].match(/(.*) ?\((\d+)\)$/);
 
-                var results = scope.source({$query: tags[i]});
+                if(multiple) {
+                  tag = multiple[1];
+                  times = parseInt(multiple[2]);
+                }
+
+                var results = scope.source({$query: tag});
 
                 if(_.isArray(results)) {
                   if(results.length) {
                     if(!options.skipFiltering) {
-                      var filterBy = {};
-                      filterBy[options.tagsInput.displayProperty] = tags[i];
+                      //var filterBy = {};
+                      var filterBy = tag;
+                      //filterBy[options.tagsInput.displayProperty] = tags[i];
                       results = $filter('cnFilter')(results, filterBy);
                     }
-                    tagsInput.addTag(results[0]);
+                    addTags(times)(results);
                   }
                   else if(!options.tagsInput.addFromAutocompleteOnly) {
-                    var tag = {};
-                    tag[options.tagsInput.displayProperty] = tags[i];
-                    tag[options.tagsInput.valueProperty] = tags[i];
-                    tagsInput.addTag(tag);
+                    var newTag = {};
+                    newTag[options.tagsInput.displayProperty] = tag;
+                    newTag[options.tagsInput.valueProperty] = tag;
+                    tagsInput.addTag(newTag);
                   }
                 }
                 else if(results.then) {
-                  results.then(addTag);
+                  results.then(addTags(times));
                 }
               }
             });
           });
 
           tagsInput
-              .on('tag-added invalid-tag', function() {
-                if(options.minLength) {
-                  suggestionList.reset();
-                }
-                else {
-                  suggestionList.load('', tagsInput.getTags());
-                }
-              })
               .on('input-change', function(value) {
                 if(value || !options.minLength) {
                   suggestionList.load(value, tagsInput.getTags());
