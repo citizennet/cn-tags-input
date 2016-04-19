@@ -156,8 +156,8 @@
    * @param {string=} [tagsStyle='tags'] Default tags style
    */
   tagsInput.directive('tagsInput', [
-    "$timeout", "$document", "tagsInputConfig", "$sce",
-    function($timeout, $document, tagsInputConfig, $sce) {
+    "$timeout", "$document", "tagsInputConfig", "$sce", "$compile",
+    function($timeout, $document, tagsInputConfig, $sce, $compile) {
       function TagList(options, events) {
         var self = {}, getTagText, setTagText, tagIsValid;
 
@@ -500,6 +500,7 @@
           };
 
           scope.$watch('tags', function(value, prev) {
+            console.log('tags watch:', value, prev);
             var changed = !angular.equals(value, prev);
             var init    = !changed && first;
 
@@ -515,13 +516,14 @@
             }
 
             if(options.modelType === 'array') {
-              //console.log('array:', value, tagList.items);
+              //console.log('array:', value, tagList.items);             }
               if(_.isArray(value)) {
                 if(value.length) {
-                  if(!matchTagsWithModel(tagList.items, scope.tags, options.valueProperty)) {
+                  var match = matchTagsWithModel(tagList.items, scope.tags, options.valueProperty)
+                  if(!match) {
                     scope.triggerInit(value, prev);
                   }
-                  if(tagList.items.length !== scope.tags.length) {
+                  if(!match || tagList.items.length !== scope.tags.length) {
                     tagList.items = makeObjectArray(value, options.displayProperty, options.valueProperty);
                     if(options.arrayValueType !== 'object') {
                       scope.tags = _.pluck(tagList.items, options.valueProperty);
