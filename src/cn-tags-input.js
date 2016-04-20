@@ -500,7 +500,7 @@
           };
 
           scope.$watch('tags', function(value, prev) {
-            console.log('tags watch:', value, prev);
+            //console.log('tags watch:', value, prev);
             var changed = !angular.equals(value, prev);
             var init    = !changed && first;
 
@@ -1058,7 +1058,6 @@
             if(suggestionList.selected) {
               tagsInput.addTag(suggestionList.selected);
 
-              console.log('options.tagsInput.maxTags, tagsInput.getTags().length, options.minLength:', options.tagsInput.maxTags, tagsInput.getTags().length, options.minLength);
               if(!options.tagsInput.maxTags || tagsInput.getTags().length < options.tagsInput.maxTags) {
                 var i = suggestionList.items.indexOf(suggestionList.selected);
                 suggestionList.items.splice(i, 1);
