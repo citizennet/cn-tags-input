@@ -519,7 +519,7 @@
               //console.log('array:', value, tagList.items);             }
               if(_.isArray(value)) {
                 if(value.length) {
-                  var match = matchTagsWithModel(tagList.items, scope.tags, options.valueProperty)
+                  var match = matchTagsWithModel(tagList.items, scope.tags, options.valueProperty);
                   if(!match) {
                     scope.triggerInit(value, prev);
                   }
@@ -1453,8 +1453,8 @@
                    autocomplete=\"off\">\
             <span class=\"tag-item label {{options.tagClass}} label-block\"\
                   ng-if=\"options.tagsStyle !== 'list' && !options.hideTags && options.maxTags === 1 && tagList.items.length\"\
-                  title=\"{{getDisplayText(tagList.items[0])}}\"\
-                  ng-bind-html=\"getDisplayHtml(tagList.items[0])\">\
+                  title=\"{{getDisplayText(tagList.items[0])}}\">\
+              <span ng-bind-html=\"getDisplayHtml(tagList.items[0])\"/> \
               <a class=\"remove-button\" \
                  ng-if=\"!ngDisabled && !options.dropdown\"\
                  ng-click=\"tagList.remove()\">\
