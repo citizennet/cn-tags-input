@@ -75,7 +75,7 @@
         // but I couldn't come up with a better solution right now
         if(_.has(obj, key) &&
             _.has(array[i], key) &&
-            angular.toJson(array[i][key]).toLowerCase() === angular.toJson(obj[key]).toLowerCase()) {
+            (angular.toJson(array[i][key]) + '').toLowerCase() === (angular.toJson(obj[key]) + '').toLowerCase()) {
           item = array[i];
           break;
         }
