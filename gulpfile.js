@@ -2,9 +2,11 @@
 var gulp = require('gulp');
 
 // Include Our Plugins
-var jshint = require('gulp-jshint');
-var uglify = require('gulp-uglify');
-var rename = require('gulp-rename');
+var jshint        = require('gulp-jshint');
+var uglify        = require('gulp-uglify');
+var rename        = require('gulp-rename');
+var sourcemaps    = require('gulp-sourcemaps');
+var babel         = require('gulp-babel');
 
 // Lint Task
 gulp.task('lint', function() {
@@ -12,7 +14,8 @@ gulp.task('lint', function() {
       .pipe(jshint({
         multistr: true,
         validthis: true,
-        evil: true
+        evil: true,
+        esnext: true
       }))
       .pipe(jshint.reporter('default'));
 });
@@ -20,8 +23,11 @@ gulp.task('lint', function() {
 // Concatenate & Minify JS
 gulp.task('scripts', function() {
   return gulp.src('src/*.js')
+      .pipe(sourcemaps.init())
+      .pipe(babel())
       .pipe(rename('all.min.js'))
       .pipe(uglify())
+      .pipe(sourcemaps.write('.'))
       .pipe(gulp.dest('dist'));
 });
 
