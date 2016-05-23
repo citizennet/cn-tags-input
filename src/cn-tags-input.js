@@ -46,8 +46,9 @@
     array = array || [];
     if(array.length > 0 && !angular.isObject(array[0])) {
       array.forEach(function(item, index) {
-        array[index] = {};
-        array[index][key] = item;
+        array[index] = {
+          [key]: item
+        };
         if(key2) array[index][key2] = item;
       });
     }
@@ -75,7 +76,7 @@
         // but I couldn't come up with a better solution right now
         if(_.has(obj, key) &&
             _.has(array[i], key) &&
-            angular.toJson(array[i][key]).toLowerCase() === angular.toJson(obj[key]).toLowerCase()) {
+            (angular.toJson(array[i][key]) + '').toLowerCase() === (angular.toJson(obj[key]) + '').toLowerCase()) {
           item = array[i];
           break;
         }
@@ -91,14 +92,17 @@
 
   function matchTagsWithModel(tags, model, valueProperty) {
     //if(tags.length !== model.length) return false;
-    var match = true, i = 0, l = tags.length;
-    for(; i < l; i++) {
-      if(!angular.equals(tags[i][valueProperty], model[i])) {
-        match = false;
-        break;
-      }
+    if(!model || !tags || !tags.length) return false;
+
+    if(!_.isArray(model)) {
+      if(valueProperty) return angular.equals(model, tags[0][valueProperty]);
+      return angular.equals(model, tags[0]);
     }
-    return match;
+
+    return tags.some((tag, i) => {
+      tag = (_.isObject(tag) && valueProperty) ? tag[valueProperty] : tag;
+      return angular.equals(tag, model[i]);
+    });
   }
 
   function selectAll(input) {
@@ -156,8 +160,8 @@
    * @param {string=} [tagsStyle='tags'] Default tags style
    */
   tagsInput.directive('tagsInput', [
-    "$timeout", "$document", "tagsInputConfig", "$sce", "$compile",
-    function($timeout, $document, tagsInputConfig, $sce, $compile) {
+    "$timeout", "$document", "tagsInputConfig", "$sce", "$rootScope",
+    function($timeout, $document, tagsInputConfig, $sce, $rootScope) {
       function TagList(options, events) {
         var self = {}, getTagText, setTagText, tagIsValid;
 
@@ -176,7 +180,7 @@
           if(tag[options.displayProperty]) return;
 
           tag[options.displayProperty] = text;
-          if(!_.has(tag, options.valueProperty)) {
+          if(options.valueProperty && !_.has(tag, options.valueProperty)) {
             tag[options.valueProperty] = text;
           }
         };
@@ -190,7 +194,8 @@
                  !findInObjectArray(
                      self.items,
                      tag,
-                     _.has(tag, options.valueProperty) ? options.valueProperty : getTagText
+                     //_.has(tag, options.valueProperty) ? options.valueProperty : getTagText
+                     options.valueProperty || getTagText
                  );
         };
 
@@ -199,7 +204,7 @@
         self.addText = function(text) {
           var tag = {};
           setTagText(tag, text);
-          return self.add(tag);
+          self.add(tag);
         };
 
         self.add = function(tag) {
@@ -276,7 +281,7 @@
         templateUrl: 'cnTagsInput/tags-input.html',
         controller: ["$scope", "$attrs", "$element", function($scope, $attrs, $element) {
           tagsInputConfig.load('tagsInput', $scope, $attrs, {
-            placeholder: [String, 'Add a tag'],
+            placeholder: [String, ''],
             tabindex: [Number],
             removeTagSymbol: [String, String.fromCharCode(215)],
             replaceSpacesWithDashes: [Boolean, false],
@@ -292,7 +297,7 @@
             minTags: [Number],
             maxTags: [Number],
             displayProperty: [String, 'text'],
-            valueProperty: [String, 'value'],
+            valueProperty: [String],
             allowLeftoverText: [Boolean, false],
             addFromAutocompleteOnly: [Boolean, false],
             //tagClasses: [Object, null],
@@ -308,22 +313,28 @@
             showButton: [Boolean, false]
           });
 
-          if($scope.itemFormatter) $scope.options.itemFormatter = $scope.itemFormatter;
+          var options = $scope.options;
 
-          if($scope.options.tagsStyle === 'tags') {
-            $scope.options.tagClass = $scope.options.tagClass || 'label-primary';
+          if(!options.valueProperty &&
+              (!/object|array/.test(options.modelType) || options.arrayValueType !== 'object')) {
+            options.valueProperty = 'value';
           }
 
-          //console.log('$scope.options.allowBulk:', $scope.options.allowBulk);
-          if($scope.options.allowBulk && ($scope.options.modelType !== 'array' || $scope.options.maxTags === 1)) {
-            $scope.options.allowBulk = false;
+          if($scope.itemFormatter) options.itemFormatter = $scope.itemFormatter;
+
+          if(options.tagsStyle === 'tags') {
+            options.tagClass = options.tagClass || 'label-primary';
+          }
+
+          if(options.allowBulk && (options.modelType !== 'array' || options.maxTags === 1)) {
+            options.allowBulk = false;
           }
 
           $scope.events = new SimplePubSub();
-          $scope.tagList = new TagList($scope.options, $scope.events);
+          $scope.tagList = new TagList(options, $scope.events);
 
           this.registerAutocomplete = function() {
-            var input = $element.find('input.input');
+            var input = options.input = $element.find('input.input');
             input.on('keydown', function(e) {
               $scope.events.trigger('input-keydown', e);
             });
@@ -339,15 +350,10 @@
                 input[0].blur();
               },
               getTags: function() {
-                if($scope.options.modelType === 'array') {
-                  return $scope.tagList.items;
-                }
-                else {
-                  return $scope.tagList.items ? [$scope.tagList.items] : [];
-                }
+                return $scope.tagList.items;
               },
               getOptions: function() {
-                return $scope.options;
+                return options;
               },
               on: function(name, handler) {
                 $scope.events.on(name, handler);
@@ -394,14 +400,19 @@
               .on('tag-changed', beforeAndAfter(scope.onBeforeTagChanged, scope.onTagChanged))
               .on('tag-init', scope.onInit)
               .on('tag-added tag-removed', function(e) {
-                //scope.newTag.text = '';
+                if(!options.maxTags || options.maxTags > scope.tagList.items.length) {
+                  selectAll(options.input[0]);
+                }
+                else {
+                  scope.newTag.text = '';
+                }
                 if(options.modelType === 'array') {
                   //console.log('options.arrayValueType:', options.arrayValueType);
-                  if(options.arrayValueType === 'object') {
+                  //if(options.arrayValueType === 'object') {
+                  if(!options.valueProperty) {
                     scope.tags = scope.tagList.items;
                   }
                   else {
-                    //console.log('_.pluck:', options.valueProperty, _.pluck(scope.tagList.items, options.valueProperty), scope.tagList.items);
                     scope.tags = _.pluck(scope.tagList.items, options.valueProperty);
                   }
                 }
@@ -411,7 +422,8 @@
                     scope.tags = undefined;
                   }
                   else {
-                    if(options.modelType === 'object') {
+                    //if(options.modelType === 'object') {
+                    if(!options.valueProperty) {
                       //ngModelCtrl.$setViewValue(e.$tag);
                       scope.tags = e.$tag;
                     }
@@ -476,8 +488,7 @@
           var first = true;
 
           scope.triggerInit = function(value, prev) {
-            var criteria = {};
-            criteria[options.valueProperty] = value;
+            var criteria = options.valueProperty ? {[options.valueProperty]: value} : value;
             if(!tagList.items.length || !_.find(tagList.items, criteria)) {
               events.trigger('tag-init', {
                 $tag: value,
@@ -485,10 +496,10 @@
                 $event: 'tag-init',
                 $setter: function(val) {
                   if(val && !_.isObject(val)) {
-                    var newVal = {};
-                    newVal[options.displayProperty] = val;
-                    newVal[options.valueProperty] = val;
-                    tagList.items = [newVal];
+                    tagList.items = [{
+                      [options.displayProperty]: val,
+                      [options.valueProperty]: val
+                    }];
                   }
                   else {
                     tagList.items = _.isArray(val) ? val : [val];
@@ -516,7 +527,6 @@
             }
 
             if(options.modelType === 'array') {
-              //console.log('array:', value, tagList.items);             }
               if(_.isArray(value)) {
                 if(value.length) {
                   var match = matchTagsWithModel(tagList.items, scope.tags, options.valueProperty);
@@ -547,7 +557,8 @@
             else if(angular.isDefined(value)) {
               if(_.isArray(value)) {
                 if(value.length) {
-                  if(options.modelType === 'object') {
+                  //if(options.modelType === 'object') {
+                  if(!options.valueProperty) {
                     scope.tags = value[0];
                   }
                   else {
@@ -562,7 +573,7 @@
               }
               else {
                 if(options.modelType === 'object') {
-                  tagList.items = [value];
+                  if(value !== null) tagList.items = [value];
                 }
                 else {
                   if(_.isObject(value)) {
@@ -575,7 +586,6 @@
                     return;
                   }
                   else {
-                    //console.log('value, tagList.items:', value, tagList.items);
                     if(value && !tagList.items.length) {
                       scope.triggerInit(value, prev);
                     }
@@ -596,24 +606,20 @@
               }
             }
             else if(!value && tagList.items.length) {
-              //console.log('value, tagList.items[0]:', value, tagList.items[0]);
               tagList.items = [];
             }
 
             if(!init && changed) {
               ngModelCtrl.$setDirty();
-              //console.log('ngModelCtrl.$pristine:', ngModelCtrl.$pristine);
             }
 
             // hack because schemaForm is incorrectly invalidating model sometimes
             ngModelCtrl.$setValidity('schemaForm', true);
             if(options.modelType === 'array') {
-              //console.log('options.minTags:', attrs.inputId, options.minTags, value, value && value.length, value ? angular.isDefined(options.minTags) ? value.length >= options.minTags : true : false);
               ngModelCtrl.$setValidity('tv4-401', value && options.maxTags ? value.length <= options.maxTags : true);
               ngModelCtrl.$setValidity('tv4-302', value ? angular.isDefined(options.minTags) ? value.length >= options.minTags : true : false);
             }
             else {
-              //console.log('options.required:', attrs.inputId, options.required, !options.required || !!value, value);
               ngModelCtrl.$setValidity('tv4-302', !options.required || !(angular.isUndefined(value)));
             }
 
@@ -669,7 +675,6 @@
                       lostFocusToBrowserWindow = activeElement === input[0],
                       lostFocusToChildElement = element[0].contains(activeElement);
 
-                  //console.log('lostFocusToBrowserWindow, !lostFocusToChildElement:', lostFocusToBrowserWindow, !lostFocusToChildElement);
                   if(lostFocusToBrowserWindow || !lostFocusToChildElement) {
                     scope.hasFocus = false;
                     events.trigger('input-blur', e);
@@ -687,7 +692,6 @@
           element.find('div').on('click', function(e) {
             if(!$(e.target).closest('.suggestion').length) {
               e.preventDefault();
-              //console.log('input:', input);
               input[0].focus();
             }
           });
@@ -841,12 +845,12 @@
               return item[options.tagsInput.displayProperty] !== '';
             });
           }
-          //console.log('findInObjectArray:', options.tagsInput.getTagText(array1[0]), options.tagsInput.getTagText(array2[0]));
           return array1.filter(function(item) {
             return !findInObjectArray(
                 array2,
                 item,
-                _.has(item, options.tagsInput.valueProperty) ? options.tagsInput.valueProperty : options.tagsInput.getTagText
+                //_.has(item, options.tagsInput.valueProperty) ? options.tagsInput.valueProperty : options.tagsInput.getTagText
+                options.tagsInput.valueProperty || options.tagsInput.getTagText
             );
           });
         };
@@ -1005,7 +1009,6 @@
           searchKeys: '=?'
         },
         templateUrl: function(elem, attrs) {
-          //console.log('attrs:', attrs);
           return attrs.customTemplateUrl || 'cnTagsInput/auto-complete.html';
         },
         link: function(scope, element, attrs, tagsInputCtrl) {
@@ -1051,7 +1054,7 @@
             //console.log('addSuggestion:', e);
             e.preventDefault();
 
-            selectAll(e.target);
+            //selectAll(e.target);
 
             var added = false;
 
@@ -1127,10 +1130,10 @@
                     addTags(times)(results);
                   }
                   else if(!options.tagsInput.addFromAutocompleteOnly) {
-                    var newTag = {};
-                    newTag[options.tagsInput.displayProperty] = tag;
-                    newTag[options.tagsInput.valueProperty] = tag;
-                    tagsInput.addTag(newTag);
+                    tagsInput.addTag({
+                      [options.tagsInput.displayProperty]: tag,
+                      [options.tagsInput.valueProperty]: tag
+                    });
                   }
                 }
                 else if(results.then) {
