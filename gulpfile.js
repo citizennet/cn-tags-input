@@ -25,8 +25,10 @@ gulp.task('scripts', function() {
   return gulp.src('src/*.js')
       .pipe(sourcemaps.init())
       .pipe(babel())
-      .pipe(rename('all.min.js'))
+      .pipe(rename('all.js'))
+      .pipe(gulp.dest('dist'))
       .pipe(uglify())
+      .pipe(rename('all.min.js'))
       .pipe(sourcemaps.write('.'))
       .pipe(gulp.dest('dist'));
 });
