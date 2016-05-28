@@ -413,8 +413,6 @@
                     scope.tags = scope.tagList.items;
                   }
                   else {
-                    console.log('scope.tagList.items, options.valueProperty:', scope.tagList.items, options.valueProperty);
-                    console.log('scope.tags:', scope.tags);
                     scope.tags = _.pluck(scope.tagList.items, options.valueProperty);
                     console.log('scope.tags:', scope.tags);
                   }
@@ -539,7 +537,10 @@
                   if(!match || tagList.items.length !== scope.tags.length) {
                     tagList.items = makeObjectArray(value, options.displayProperty, options.valueProperty);
                     if(options.arrayValueType !== 'object') {
+                      console.log('scope.tagList.items, options.valueProperty:', scope.tagList.items, options.valueProperty);
+                      console.log('scope.tags:', scope.tags);
                       scope.tags = _.pluck(tagList.items, options.valueProperty);
+                      console.log('scope.tags:', scope.tags);
 
                       //console.log('first, init:', first, init, scope.tags);
                       return;
