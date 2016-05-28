@@ -400,7 +400,10 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             if (!options.valueProperty) {
               scope.tags = scope.tagList.items;
             } else {
+              console.log('scope.tagList.items, options.valueProperty:', scope.tagList.items, options.valueProperty);
+              console.log('scope.tags:', scope.tags);
               scope.tags = _.pluck(scope.tagList.items, options.valueProperty);
+              console.log('scope.tags:', scope.tags);
             }
           } else {
             if (e.$event === 'tag-removed') {
