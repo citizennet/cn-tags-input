@@ -1016,7 +1016,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           var added = false;
 
           if (suggestionList.selected) {
-            tagsInput.addTag(suggestionList.selected);
+            tagsInput.addTag(angular.copy(suggestionList.selected));
 
             if (!options.tagsInput.maxTags || tagsInput.getTags().length < options.tagsInput.maxTags) {
               var i = suggestionList.items.indexOf(suggestionList.selected);
