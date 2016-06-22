@@ -434,6 +434,10 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
             ngModelCtrl.$setValidity('leftoverText', options.allowLeftoverText ? true : !scope.newTag.text);
           }
+
+          // Reset newTag
+          scope.newTag.text = '';
+          scope.newTag.invalid = null;
         });
 
         scope.newTag = { text: '', invalid: null };
@@ -1006,7 +1010,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         scope.suggestionList = suggestionList;
 
         scope.addSuggestion = function (e) {
-          //console.log('addSuggestion:', e);
           e.preventDefault();
 
           //selectAll(e.target);
@@ -1162,17 +1165,17 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
           if (suggestionList.visible) {
             // if autocomplete option was selected, or click/focus triggered outside of directive
-            if (($(e.target).closest('.suggestion').length || !$(e.target).closest(element[0]).length) && !(e.type === 'focusin' && !/^(input|select|textarea|button|a)$/i.test(e.target.tagName))) {
+            if (($(e.target).closest('.suggestion').length || !$(e.target).closest(element[0]).length) && !(e.type === 'blur' && !/^(input|select|textarea|button|a)$/i.test(e.target.tagName))) {
               suggestionList.reset();
               if (!/apply|digest/.test(scope.$root.$$phase)) scope.$apply();
             }
           }
         };
 
-        $document.on('click focusin', documentClick);
+        $document.on('click blur', documentClick);
 
         scope.$on('$destroy', function () {
-          $document.off('click focusin', documentClick);
+          $document.off('click blur', documentClick);
         });
       }
     };
