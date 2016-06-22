@@ -586,10 +586,9 @@
 
                     return;
                   }
-                  else {
-                    if(value && !tagList.items.length) {
-                      scope.triggerInit(value, prev);
-                    }
+                  else if(!_.isUndefined(value) &&
+                      (!tagList.items.length || tagList.items[0][options.valueProperty] !== value)) {
+                    scope.triggerInit(value, prev);
                   }
                   //else {
                   //  var val = _.first(_.pluck(tagList.items, options.valueProperty));
