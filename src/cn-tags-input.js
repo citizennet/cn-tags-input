@@ -455,6 +455,10 @@
 
                   ngModelCtrl.$setValidity('leftoverText', options.allowLeftoverText ? true : !scope.newTag.text);
                 }
+              
+                // Reset newTag
+                scope.newTag.text = '';
+                scope.newTag.invalid = null;
               });
 
           scope.newTag = {text: '', invalid: null};
@@ -586,10 +590,9 @@
 
                     return;
                   }
-                  else {
-                    if(value && !tagList.items.length) {
-                      scope.triggerInit(value, prev);
-                    }
+                  else if(!_.isUndefined(value) &&
+                      (!tagList.items.length || tagList.items[0][options.valueProperty] !== value)) {
+                    scope.triggerInit(value, prev);
                   }
                   //else {
                   //  var val = _.first(_.pluck(tagList.items, options.valueProperty));
@@ -1052,7 +1055,6 @@
           scope.suggestionList = suggestionList;
 
           scope.addSuggestion = function(e) {
-            //console.log('addSuggestion:', e);
             e.preventDefault();
 
             //selectAll(e.target);
@@ -1221,17 +1223,17 @@
             if(suggestionList.visible) {
               // if autocomplete option was selected, or click/focus triggered outside of directive
               if(($(e.target).closest('.suggestion').length || !$(e.target).closest(element[0]).length) &&
-                  !(e.type === 'focusin' && !/^(input|select|textarea|button|a)$/i.test(e.target.tagName))) {
+                  !(e.type === 'blur' && !/^(input|select|textarea|button|a)$/i.test(e.target.tagName))) {
                 suggestionList.reset();
                 if(!/apply|digest/.test(scope.$root.$$phase)) scope.$apply();
               }
             }
           };
 
-          $document.on('click focusin', documentClick);
+          $document.on('click blur', documentClick);
 
           scope.$on('$destroy', function() {
-            $document.off('click focusin', documentClick);
+            $document.off('click blur', documentClick);
           });
         }
       };
