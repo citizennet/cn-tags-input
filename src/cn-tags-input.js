@@ -455,10 +455,12 @@
 
                   ngModelCtrl.$setValidity('leftoverText', options.allowLeftoverText ? true : !scope.newTag.text);
                 }
-              
+
                 // Reset newTag
-                scope.newTag.text = '';
-                scope.newTag.invalid = null;
+                // TODO: maybe make this optional, we don't want to clear in all
+                // TODO: cases, like on the filter inputs on list pages
+                // scope.newTag.text = '';
+                // scope.newTag.invalid = null;
               });
 
           scope.newTag = {text: '', invalid: null};
