@@ -220,9 +220,7 @@
 
           setTagText(tag, tagText);
 
-          //console.log('tagIsValid(tag):', tagIsValid(tag));
           if(tagIsValid(tag)) {
-            //console.log('tag:', tag, options.maxTags, self.items.length >= options.maxTags);
             if(options.maxTags && self.items.length >= options.maxTags) {
               self.items.pop();
               events.trigger('tag-removed', {$tag: tag, $event: 'tag-removed'});
@@ -407,14 +405,12 @@
                   scope.newTag.text = '';
                 }
                 if(options.modelType === 'array') {
-                  //console.log('options.arrayValueType:', options.arrayValueType);
                   //if(options.arrayValueType === 'object') {
                   if(!options.valueProperty) {
                     scope.tags = scope.tagList.items;
                   }
                   else {
                     scope.tags = _.pluck(scope.tagList.items, options.valueProperty);
-                    console.log('scope.tags:', scope.tags);
                   }
                 }
                 else {
@@ -516,7 +512,6 @@
           };
 
           scope.$watch('tags', function(value, prev) {
-            //console.log('tags watch:', value, prev);
             var changed = !angular.equals(value, prev);
             var init    = !changed && first;
 
@@ -543,7 +538,6 @@
                     if(options.arrayValueType !== 'object') {
                       scope.tags = _.pluck(tagList.items, options.valueProperty);
 
-                      //console.log('first, init:', first, init, scope.tags);
                       return;
                     }
                   }
@@ -603,7 +597,6 @@
                   //    tagList.items = [];
                   //  }
                     // todo: why were we overriding scope.tags? This will lead to recursion
-                    //console.log('val:', val);
                     //scope.tags = val;
                   //}
                 }
@@ -709,7 +702,6 @@
             if(blurTimeout) $timeout.cancel(blurTimeout);
 
             scope.hasFocus = true;
-            //console.log('onFocus:', input.val());
             events.trigger('input-focus', input.val());
 
             if(!/apply|digest/.test(scope.$root.$$phase)) scope.$apply();
@@ -743,6 +735,7 @@
       function SuggestionList(scope, options) {
         var self = {}, debouncedLoadId, getDifference, lastPromise, groupList,
             splitListItems, formatItemText, mapIndexes;
+        
 
         groupList = function(list, groupBy) {
           var filtered = {},
@@ -843,7 +836,6 @@
         };
 
         getDifference = function(array1, array2) {
-          //console.log('getDifference:', array1, array2);
           if(!array2.length) {
             return array1.filter(function(item) {
               return item[options.tagsInput.displayProperty] !== '';
@@ -919,7 +911,6 @@
                   //filterBy[options.tagsInput.displayProperty] = query;
                   items = makeObjectArray(items.data || items, options.tagsInput.displayProperty);
                   items = getDifference(items, tags);
-                  //console.log('options.skipFiltering:', options.skipFiltering);
                   if(query && !options.skipFiltering) {
                     items = $filter('cnFilter')(items, filterBy);
                   }
@@ -1020,7 +1011,7 @@
               suggestionList, tagsInput, options, getItemText, documentClick;
 
           tagsInputConfig.load('autoComplete', scope, attrs, {
-            debounceDelay: [Number, 1000],
+            debounceDelay: [Number, 250],
             minLength: [Number, 3],
             highlightMatchedText: [Boolean, true],
             maxResultsToShow: [Number, 75],
@@ -1095,8 +1086,6 @@
           };
 
           tagsInput.registerProcessBulk(function(bulkTags) {
-            console.log('autoCompleteProcessBulk:', bulkTags);
-
             var tags = bulkTags.split(options.tagsInput.bulkDelimiter);
 
             var addTags = function(i) {
@@ -1156,7 +1145,6 @@
                 }
               })
               .on('input-focus', function(value) {
-                //console.log('input-focus:', options.minLength, suggestionList.visible);
                 if(!suggestionList.visible && !options.minLength) {
                   suggestionList.load(value, tagsInput.getTags());
                 }
