@@ -157,7 +157,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
    * @param {string} modelType Defines ngModel type, if anything other than array, model is set to first tag in list
    * @param {string} arrayValueType Defines ngModel[] type, if anything other than object, value is set mapped from object's values
    * @param {boolean=} [hideTags=false] Flag indicating whether to hide tag list (for manually displaying tag list in other way)
-   * @param {boolean=} [dropdown=false] Flag to show icon on right side
+   * @param {boolean=} [dropdownIcon=false] Flag to show icon on right side
    * @param {string=} [tagsStyle='tags'] Default tags style
    */
   tagsInput.directive('tagsInput', ["$timeout", "$document", "tagsInputConfig", "$sce", "$rootScope", function ($timeout, $document, tagsInputConfig, $sce, $rootScope) {
@@ -298,7 +298,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           modelType: [String, 'array'],
           arrayValueType: [String, 'object'],
           hideTags: [Boolean, false],
-          dropdown: [Boolean, false],
+          dropdownIcon: [Boolean, false],
           tagsStyle: [String, 'tags'],
           allowBulk: [Boolean, false],
           bulkDelimiter: [RegExp, /, ?|\n/],
@@ -572,8 +572,8 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
               }
             }
           } else if (!value && tagList.items.length) {
-            tagList.items = [];
-          }
+              tagList.items = [];
+            }
 
           if (!init && changed) {
             ngModelCtrl.$setDirty();
@@ -983,7 +983,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         options.tagsInput = tagsInput.getOptions();
 
         if (options.minLength === 0 /* && _.isArray(scope.source())*/) {
-            options.tagsInput.dropdown = true;
+            options.tagsInput.dropdownIcon = true;
             if (options.tagsInput.maxTags === 1) {
               options.tagsInput.dropdownStyle = 'caret';
             } else {
@@ -1388,7 +1388,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
                   title=\"{{getDisplayText(tagList.items[0])}}\">\
               <span ng-bind-html=\"getDisplayHtml(tagList.items[0])\"/> \
               <a class=\"remove-button\" \
-                 ng-if=\"!ngDisabled && !options.dropdown\"\
+                 ng-if=\"!ngDisabled && !options.dropdownIcon\"\
                  ng-click=\"tagList.remove()\">\
                 <span>&times;</span>\
               </a>\
@@ -1406,7 +1406,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
                 </a>\
               </li>\
             </ul>\
-            <button ng-if=\"options.showButton && options.dropdown\"\
+            <button ng-if=\"options.showButton && options.dropdownIcon\"\
                     class=\"btn form-control-icon\" ng-disabled=\"ngDisabled\" tabindex=\"-1\">\
               <i class=\"{{options.dropdownStyle}}\"></i>\
             </button>\
