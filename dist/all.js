@@ -1429,6 +1429,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         <div ng-if=\"suggestionList.items.length && isGroups\" \
              ng-class=\"{open: suggestionList.visible}\">\
           <ul class=\"autocomplete dropdown-menu\">\
+            <li ng-if=\"!suggestionList.items[0].items.length && !suggestionList.items[1].items.length\" class=\"dropdown-header\">No items...</li>\
             <li ng-repeat-start=\"group in suggestionList.items\"></li>\
             <li class=\"dropdown-header\" ng-show=\"group.items.length\">{{group.label | titleCase}}</li>\
             <li ng-repeat=\"item in group.items\" \
