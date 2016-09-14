@@ -102,6 +102,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
     return tags.some(function (tag, i) {
       tag = _.isObject(tag) && valueProperty ? tag[valueProperty] : tag;
+      console.log('tag, model[i]:', tag, model[i], angular.equals(tag, model[i]));
       return angular.equals(tag, model[i]);
     });
   }
@@ -508,15 +509,13 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           if (options.modelType === 'array') {
             if (_.isArray(value)) {
               if (value.length) {
-                var match = matchTagsWithModel(tagList.items, scope.tags, options.valueProperty);
-                if (!match) {
+                if (!matchTagsWithModel(tagList.items, scope.tags, options.valueProperty)) {
                   scope.triggerInit(value, prev);
                 }
-                if (!match || tagList.items.length !== scope.tags.length) {
+                if (!matchTagsWithModel(tagList.items, scope.tags, options.valueProperty) || tagList.items.length !== scope.tags.length) {
                   tagList.items = makeObjectArray(value, options.displayProperty, options.valueProperty);
                   if (options.arrayValueType !== 'object') {
                     scope.tags = _.pluck(tagList.items, options.valueProperty);
-
                     return;
                   }
                 }
