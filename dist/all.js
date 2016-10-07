@@ -250,6 +250,14 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         return tag;
       };
 
+      self.removeAll = function () {
+        var tags = self.items.slice(0);
+        self.items.splice(0, self.items.length);
+        tags.forEach(function (tag) {
+          events.trigger('tag-removed', { $tag: tag, $event: 'tag-removed' });
+        });
+      };
+
       return self;
     }
 
@@ -303,6 +311,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           allowBulk: [Boolean, false],
           bulkDelimiter: [RegExp, /, ?|\n/],
           bulkPlaceholder: [String, 'Enter a list separated by commas or new lines'],
+          showClearAll: [Boolean, false],
           showButton: [Boolean, false]
         });
 
@@ -320,6 +329,10 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
         if (options.allowBulk && (options.modelType !== 'array' || options.maxTags === 1)) {
           options.allowBulk = false;
+        }
+
+        if (options.showClearAll && options.modelType !== 'array') {
+          options.showClearAll = false;
         }
 
         $scope.events = new SimplePubSub();
@@ -1412,7 +1425,8 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             </button>\
           </div>\
         </div>\
-        <p class=\"help-block\" ng-show=\"options.allowBulk && !showBulk\"><a ng-click=\"showBulk = true\">Batch mode</a></p>\
+        <p class=\"help-block\" ng-show=\"options.allowbulk && !showbulk\"><a ng-click=\"showbulk = true\">batch mode</a></p>\
+        <p class=\"help-block\" ng-show=\"options.showClearAll && tagList.items.length\"><a ng-click=\"tagList.removeAll()\">Clear</a></p>\
         <div ng-show=\"showBulk\" class=\"clearfix\">\
           <textarea class=\"form-control\" ng-model=\"bulkTags\" placeholder=\"{{options.bulkPlaceholder}}\"></textarea>\
           <p class=\"help-block\">\
