@@ -256,8 +256,7 @@
         };
 
         self.removeAll = function() {
-          var tags = self.items.slice(0);
-          self.items.splice(0, self.items.length);
+          var tags = self.items.splice(0, self.items.length);
           tags.forEach(function(tag) {
             events.trigger('tag-removed', {$tag: tag, $event: 'tag-removed'});
           });
