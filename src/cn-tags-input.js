@@ -55,15 +55,6 @@
     return array;
   }
 
-  function getArrayModelVal(array, options) {
-    if(options.arrayValueType === 'object') {
-      return (array || []).map(item => _.isObject(item && item[options.valueProperty]) ? item[options.valueProperty] : item);
-    }
-    else {
-      return _.pluck(array, options.valueProperty);
-    }
-  }
-
   function findInObjectArray(array, obj, key) {
     var item = null;
     var i = 0;
@@ -99,19 +90,17 @@
     return str.replace(new RegExp(expression, 'gi'), newSubstr);
   }
 
-  function matchTagsWithModel(tags, model, options) {
+  function matchTagsWithModel(tags, model, valueProperty) {
     //if(tags.length !== model.length) return false;
     if(!model || !tags || !tags.length) return false;
 
     if(!_.isArray(model)) {
-      if(options.valueProperty) return angular.equals(model, tags[0][valueProperty]);
+      if(valueProperty) return angular.equals(model, tags[0][valueProperty]);
       return angular.equals(model, tags[0]);
     }
 
-    let array = getArrayModelVal(tags, options);
-    console.log('array, tags, options:', array, tags, options);
-    return array.some((tag, i) => {
-      console.log('tag, model[i]:', tag, model[i], angular.equals(tag, model[i]));
+    return tags.some((tag, i) => {
+      tag = (_.isObject(tag) && valueProperty) ? tag[valueProperty] : tag;
       return angular.equals(tag, model[i]);
     });
   }
@@ -433,8 +422,7 @@
                     scope.tags = scope.tagList.items;
                   }
                   else {
-                    scope.tags = getArrayModelVal(scope.tagList.items, options);
-                    console.log('on:tag-added:scope.tags:', scope.tags);
+                    scope.tags = _.pluck(scope.tagList.items, options.valueProperty);
                   }
                 }
                 else {
@@ -515,7 +503,6 @@
           var first = true;
 
           scope.triggerInit = function(value, prev) {
-            console.log('triggerInit:', value, options.valueProperty);
             var criteria = options.valueProperty ? {[options.valueProperty]: value} : value;
             if(!tagList.items.length || !_.find(tagList.items, criteria)) {
               events.trigger('tag-init', {
@@ -523,7 +510,6 @@
                 $prev: prev,
                 $event: 'tag-init',
                 $setter: function(val) {
-                  console.log('$setter:', val, options.valueProperty);
                   if(val && !_.isObject(val)) {
                     tagList.items = [{
                       [options.displayProperty]: val,
@@ -557,15 +543,17 @@
             if(options.modelType === 'array') {
               if(_.isArray(value)) {
                 if(value.length) {
-                  console.log('on:tags:', value, tagList.items, options.valueProperty);
-                  if(!matchTagsWithModel(tagList.items, scope.tags, options)) {
+                  var match = matchTagsWithModel(tagList.items, scope.tags, options.valueProperty);
+                  if(!match) {
                     scope.triggerInit(value, prev);
                   }
-                  if(!matchTagsWithModel(tagList.items, scope.tags, options) || tagList.items.length !== scope.tags.length) {
+                  if(!match || tagList.items.length !== scope.tags.length) {
                     tagList.items = makeObjectArray(value, options.displayProperty, options.valueProperty);
-                    scope.tags = getArrayModelVal(tagList.items, options);
-                    console.log('on:tags:scope.tags:', scope.tags);
-                    return;
+                    if(options.arrayValueType !== 'object') {
+                      scope.tags = _.pluck(tagList.items, options.valueProperty);
+
+                      return;
+                    }
                   }
                 }
                 else {
