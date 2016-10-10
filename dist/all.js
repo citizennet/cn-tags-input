@@ -1425,8 +1425,10 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             </button>\
           </div>\
         </div>\
-        <p class=\"help-block\" ng-show=\"options.allowbulk && !showbulk\"><a ng-click=\"showbulk = true\">batch mode</a></p>\
-        <p class=\"help-block\" ng-show=\"options.showClearAll && tagList.items.length\"><a ng-click=\"tagList.removeAll()\">Clear</a></p>\
+        <div class=\"btn-group help-block\">\
+          <button class=\"btn btn-xs\" style=\"border-right: 1px solid #D6D7DB\" ng-show=\"options.allowBulk && !showBulk\" ng-click=\"showBulk = true\">Batch</button>\
+          <button class=\"btn btn-xs\" ng-show=\"options.showClearAll && tagList.items.length\" ng-click=\"tagList.removeAll()\">Clear</button>\
+        </div>\
         <div ng-show=\"showBulk\" class=\"clearfix\">\
           <textarea class=\"form-control\" ng-model=\"bulkTags\" placeholder=\"{{options.bulkPlaceholder}}\"></textarea>\
           <p class=\"help-block\">\
