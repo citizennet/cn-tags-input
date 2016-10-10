@@ -347,10 +347,6 @@
             options.allowBulk = false;
           }
 
-          if(options.showClearAll && options.modelType !== 'array') {
-            options.showClearAll = false;
-          }
-
           $scope.events = new SimplePubSub();
           $scope.tagList = new TagList(options, $scope.events);
 

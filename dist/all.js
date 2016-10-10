@@ -342,10 +342,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           options.allowBulk = false;
         }
 
-        if (options.showClearAll && options.modelType !== 'array') {
-          options.showClearAll = false;
-        }
-
         $scope.events = new SimplePubSub();
         $scope.tagList = new TagList(options, $scope.events);
 
