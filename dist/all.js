@@ -111,9 +111,9 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
     }
 
     var array = getArrayModelVal(tags, options);
-    console.log('array, tags, options:', array, tags, options);
+    //console.log('array, tags, options:', array, tags, options);
     return array.some(function (tag, i) {
-      console.log('tag, model[i]:', tag, model[i], angular.equals(tag, model[i]));
+      //console.log('tag, model[i]:', tag, model[i], angular.equals(tag, model[i]));
       return angular.equals(tag, model[i]);
     });
   }
@@ -410,24 +410,24 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
               scope.tags = scope.tagList.items;
             } else {
               scope.tags = getArrayModelVal(scope.tagList.items, options);
-              console.log('on:tag-added:scope.tags:', scope.tags);
+              //console.log('on:tag-added:scope.tags:', scope.tags);
             }
           } else {
-            if (e.$event === 'tag-removed') {
-              //ngModelCtrl.$setViewValue(undefined);
-              scope.tags = undefined;
-            } else {
-              //if(options.modelType === 'object') {
-              if (!options.valueProperty) {
-                //ngModelCtrl.$setViewValue(e.$tag);
-                scope.tags = e.$tag;
+              if (e.$event === 'tag-removed') {
+                //ngModelCtrl.$setViewValue(undefined);
+                scope.tags = undefined;
               } else {
-                //ngModelCtrl.$setViewValue(e.$tag.value);
-                scope.tags = _.has(e.$tag, options.valueProperty) ? e.$tag[options.valueProperty] : e.$tag[options.displayProperty];
+                //if(options.modelType === 'object') {
+                if (!options.valueProperty) {
+                  //ngModelCtrl.$setViewValue(e.$tag);
+                  scope.tags = e.$tag;
+                } else {
+                  //ngModelCtrl.$setViewValue(e.$tag.value);
+                  scope.tags = _.has(e.$tag, options.valueProperty) ? e.$tag[options.valueProperty] : e.$tag[options.displayProperty];
+                }
+                //scope.tags = [e.$tag];
               }
-              //scope.tags = [e.$tag];
             }
-          }
         }).on('invalid-tag', function () {
           scope.newTag.invalid = true;
         }).on('input-change', function () {
@@ -483,7 +483,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         var first = true;
 
         scope.triggerInit = function (value, prev) {
-          console.log('triggerInit:', value, options.valueProperty);
+          //console.log('triggerInit:', value, options.valueProperty);
           var criteria = options.valueProperty ? _defineProperty({}, options.valueProperty, value) : value;
           if (!tagList.items.length || !_.find(tagList.items, criteria)) {
             events.trigger('tag-init', {
@@ -491,7 +491,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
               $prev: prev,
               $event: 'tag-init',
               $setter: function $setter(val) {
-                console.log('$setter:', val, options.valueProperty);
+                //console.log('$setter:', val, options.valueProperty);
                 if (val && !_.isObject(val)) {
                   var _ref2;
 
@@ -508,6 +508,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         scope.$watch('tags', function (value, prev) {
           var changed = !angular.equals(value, prev);
           var init = !changed && first;
+          //console.log('$watch:tags:', value, prev, changed, init);
 
           if (init) {
             scope.triggerInit(value, prev);
@@ -530,7 +531,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
                 if (!matchTagsWithModel(tagList.items, scope.tags, options) || tagList.items.length !== scope.tags.length) {
                   tagList.items = makeObjectArray(value, options.displayProperty, options.valueProperty);
                   scope.tags = getArrayModelVal(tagList.items, options);
-                  console.log('on:tags:scope.tags:', scope.tags);
+                  //console.log('on:tags:scope.tags:', scope.tags);
                   return;
                 }
               } else {
@@ -564,7 +565,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
                   tagList.items = [value];
 
                   var val = value[options.valueProperty];
-                  if (!val) val = value[options.displayProperty];
+                  if (_.isUndefined(val)) val = value[options.displayProperty];
                   scope.tags = val;
 
                   return;
