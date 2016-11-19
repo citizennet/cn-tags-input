@@ -347,6 +347,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
         this.registerAutocomplete = function () {
           var input = options.input = $element.find('input.input');
+          console.error('register keydown autocomplete');
           input.on('keydown', function (e) {
             $scope.events.trigger('input-keydown', e);
           });
@@ -613,56 +614,61 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           first = false;
         }, true);
 
-        input.on('keydown', function (e) {
-          // This hack is needed because jqLite doesn't implement stopImmediatePropagation properly.
-          // I've sent a PR to Angular addressing this issue and hopefully it'll be fixed soon.
-          // https://github.com/angular/angular.js/pull/4833
-          if (e.isImmediatePropagationStopped && e.isImmediatePropagationStopped()) {
-            return;
-          }
-
-          var key = e.keyCode,
-              isModifier = e.shiftKey || e.altKey || e.ctrlKey || e.metaKey,
-              addKeys = {},
-              shouldAdd,
-              shouldRemove;
-
-          if (isModifier || hotkeys.indexOf(key) === -1) {
-            return;
-          }
-
-          addKeys[KEYS.enter] = options.addOnEnter;
-          addKeys[KEYS.comma] = options.addOnComma;
-          addKeys[KEYS.space] = options.addOnSpace;
-
-          shouldAdd = !options.addFromAutocompleteOnly && addKeys[key];
-          shouldRemove = !shouldAdd && key === KEYS.backspace && scope.newTag.text.length === 0;
-
-          if (shouldAdd) {
-            tagList.addText(scope.newTag.text);
-
-            scope.$apply();
-            e.preventDefault();
-          } else if (shouldRemove) {
-            var tag = tagList.removeLast();
-            if (tag && options.enableEditingLastTag) {
-              scope.newTag.text = tag[options.displayProperty];
+        // stupid ugly hack to fix order between input and autocomplete events
+        $timeout(function () {
+          console.error('register keydown input');
+          input.on('keydown', function (e) {
+            // This hack is needed because jqLite doesn't implement stopImmediatePropagation properly.
+            // I've sent a PR to Angular addressing this issue and hopefully it'll be fixed soon.
+            // https://github.com/angular/angular.js/pull/4833
+            if (e.isImmediatePropagationStopped && e.isImmediatePropagationStopped()) {
+              return;
             }
 
-            scope.$apply();
-            e.preventDefault();
-          }
-        }).on('focus', onFocus).on('blur', function (e) {
-          blurTimeout = $timeout(function () {
-            var activeElement = $document.prop('activeElement'),
-                lostFocusToBrowserWindow = activeElement === input[0],
-                lostFocusToChildElement = element[0].contains(activeElement);
+            var key = e.keyCode,
+                isModifier = e.shiftKey || e.altKey || e.ctrlKey || e.metaKey,
+                addKeys = {},
+                shouldAdd,
+                shouldRemove;
 
-            if (lostFocusToBrowserWindow || !lostFocusToChildElement) {
-              scope.hasFocus = false;
-              events.trigger('input-blur', e);
+            if (isModifier || hotkeys.indexOf(key) === -1) {
+              return;
             }
-          }, 150); // timeout so that click event triggers first
+
+            addKeys[KEYS.enter] = options.addOnEnter;
+            addKeys[KEYS.comma] = options.addOnComma;
+            addKeys[KEYS.space] = options.addOnSpace;
+
+            shouldAdd = !options.addFromAutocompleteOnly && addKeys[key];
+            shouldRemove = !shouldAdd && key === KEYS.backspace && scope.newTag.text.length === 0;
+
+            if (shouldAdd) {
+              console.log('shouldAdd:', e);
+              tagList.addText(scope.newTag.text);
+
+              scope.$apply();
+              e.preventDefault();
+            } else if (shouldRemove) {
+              var tag = tagList.removeLast();
+              if (tag && options.enableEditingLastTag) {
+                scope.newTag.text = tag[options.displayProperty];
+              }
+
+              scope.$apply();
+              e.preventDefault();
+            }
+          }).on('focus', onFocus).on('blur', function (e) {
+            blurTimeout = $timeout(function () {
+              var activeElement = $document.prop('activeElement'),
+                  lostFocusToBrowserWindow = activeElement === input[0],
+                  lostFocusToChildElement = element[0].contains(activeElement);
+
+              if (lostFocusToBrowserWindow || !lostFocusToChildElement) {
+                scope.hasFocus = false;
+                events.trigger('input-blur', e);
+              }
+            }, 150); // timeout so that click event triggers first
+          });
         });
 
         element.find('textarea').on('keydown', function (e) {
@@ -1026,6 +1032,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         scope.suggestionList = suggestionList;
 
         scope.addSuggestion = function (e) {
+          console.log('addSuggestion:', e);
           e.preventDefault();
 
           //selectAll(e.target);

@@ -352,6 +352,7 @@
 
           this.registerAutocomplete = function() {
             var input = options.input = $element.find('input.input');
+            console.error('register keydown autocomplete');
             input.on('keydown', function(e) {
               $scope.events.trigger('input-keydown', e);
             });
@@ -647,7 +648,10 @@
 
           }, true);
 
-          input
+          // stupid ugly hack to fix order between input and autocomplete events
+          $timeout(() => {
+            console.error('register keydown input');
+            input
               .on('keydown', function(e) {
                 // This hack is needed because jqLite doesn't implement stopImmediatePropagation properly.
                 // I've sent a PR to Angular addressing this issue and hopefully it'll be fixed soon.
@@ -673,6 +677,7 @@
                 shouldRemove = !shouldAdd && key === KEYS.backspace && scope.newTag.text.length === 0;
 
                 if(shouldAdd) {
+                  console.log('shouldAdd:', e);
                   tagList.addText(scope.newTag.text);
 
                   scope.$apply();
@@ -701,6 +706,7 @@
                   }
                 }, 150); // timeout so that click event triggers first
               });
+          });
 
           element.find('textarea').on('keydown', function(e) {
             if(e.keyCode === KEYS.enter) {
@@ -1071,6 +1077,7 @@
           scope.suggestionList = suggestionList;
 
           scope.addSuggestion = function(e) {
+            console.log('addSuggestion:', e);
             e.preventDefault();
 
             //selectAll(e.target);
