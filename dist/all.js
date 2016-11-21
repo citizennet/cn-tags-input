@@ -347,7 +347,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
         this.registerAutocomplete = function () {
           var input = options.input = $element.find('input.input');
-          console.error('register keydown autocomplete');
           input.on('keydown', function (e) {
             $scope.events.trigger('input-keydown', e);
           });
@@ -533,7 +532,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           if (options.modelType === 'array') {
             if (_.isArray(value)) {
               if (value.length) {
-                console.log('on:tags:', value, tagList.items, options.valueProperty);
+                //console.log('on:tags:', value, tagList.items, options.valueProperty);
                 if (!matchTagsWithModel(tagList.items, scope.tags, options)) {
                   scope.triggerInit(value, prev);
                 }
@@ -616,7 +615,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
         // stupid ugly hack to fix order between input and autocomplete events
         $timeout(function () {
-          console.error('register keydown input');
           input.on('keydown', function (e) {
             // This hack is needed because jqLite doesn't implement stopImmediatePropagation properly.
             // I've sent a PR to Angular addressing this issue and hopefully it'll be fixed soon.
@@ -643,7 +641,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             shouldRemove = !shouldAdd && key === KEYS.backspace && scope.newTag.text.length === 0;
 
             if (shouldAdd) {
-              console.log('shouldAdd:', e);
               tagList.addText(scope.newTag.text);
 
               scope.$apply();
@@ -1032,7 +1029,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         scope.suggestionList = suggestionList;
 
         scope.addSuggestion = function (e) {
-          console.log('addSuggestion:', e);
           e.preventDefault();
 
           //selectAll(e.target);

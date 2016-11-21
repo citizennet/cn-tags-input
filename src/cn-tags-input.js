@@ -352,7 +352,6 @@
 
           this.registerAutocomplete = function() {
             var input = options.input = $element.find('input.input');
-            console.error('register keydown autocomplete');
             input.on('keydown', function(e) {
               $scope.events.trigger('input-keydown', e);
             });
@@ -555,7 +554,7 @@
             if(options.modelType === 'array') {
               if(_.isArray(value)) {
                 if(value.length) {
-                  console.log('on:tags:', value, tagList.items, options.valueProperty);
+                  //console.log('on:tags:', value, tagList.items, options.valueProperty);
                   if(!matchTagsWithModel(tagList.items, scope.tags, options)) {
                     scope.triggerInit(value, prev);
                   }
@@ -650,7 +649,6 @@
 
           // stupid ugly hack to fix order between input and autocomplete events
           $timeout(() => {
-            console.error('register keydown input');
             input
               .on('keydown', function(e) {
                 // This hack is needed because jqLite doesn't implement stopImmediatePropagation properly.
@@ -677,7 +675,6 @@
                 shouldRemove = !shouldAdd && key === KEYS.backspace && scope.newTag.text.length === 0;
 
                 if(shouldAdd) {
-                  console.log('shouldAdd:', e);
                   tagList.addText(scope.newTag.text);
 
                   scope.$apply();
@@ -1077,7 +1074,6 @@
           scope.suggestionList = suggestionList;
 
           scope.addSuggestion = function(e) {
-            console.log('addSuggestion:', e);
             e.preventDefault();
 
             //selectAll(e.target);
