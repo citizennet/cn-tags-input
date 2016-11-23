@@ -148,7 +148,8 @@
    * @param {boolean=} [addOnEnter=true] Flag indicating that a new tag will be added on pressing the ENTER key.
    * @param {boolean=} [addOnSpace=false] Flag indicating that a new tag will be added on pressing the SPACE key.
    * @param {boolean=} [addOnComma=true] Flag indicating that a new tag will be added on pressing the COMMA key.
-   * @param {boolean=} [addOnBlur=true] Flag indicating that a new tag will be added when the input field loses focus.
+   * @param {boolean=} [addOnBlur=false] Flag indicating that a new tag will be added when the input field loses focus.
+   * @param {boolean=} [clearOnBlur=false] Flag indicating whether to clear the typed text when the input field loses focus.
    * @param {boolean=} [replaceSpacesWithDashes=false] Flag indicating that spaces will be replaced with dashes.
    * @param {string=} [allowedTagsPattern=.+] Regular expression that determines whether a new tag is valid.
    * @param {boolean=} [enableEditingLastTag=false] Flag indicating that the last tag will be moved back into
@@ -307,6 +308,7 @@
             addOnSpace: [Boolean, false],
             addOnComma: [Boolean, true],
             addOnBlur: [Boolean, false],
+            clearOnBlur: [Boolean, false],
             allowedTagsPattern: [RegExp, /.+/],
             enableEditingLastTag: [Boolean, false],
             required: [Boolean, false],
@@ -469,14 +471,14 @@
                     tagList.addText(scope.newTag.text);
                   }
 
-                  ngModelCtrl.$setValidity('leftoverText', options.allowLeftoverText ? true : !scope.newTag.text);
+                  //ngModelCtrl.$setValidity('leftoverText', options.allowLeftoverText ? true : !scope.newTag.text);
                 }
 
                 // Reset newTag
-                // TODO: maybe make this optional, we don't want to clear in all
-                // TODO: cases, like on the filter inputs on list pages
-                // scope.newTag.text = '';
-                // scope.newTag.invalid = null;
+                if(options.clearOnBlur) {
+                  scope.newTag.text = '';
+                  scope.newTag.invalid = null;
+                }
               });
 
           scope.newTag = {text: '', invalid: null};
@@ -695,7 +697,7 @@
                 blurTimeout = $timeout(function() {
                   var activeElement = $document.prop('activeElement'),
                       lostFocusToBrowserWindow = activeElement === input[0],
-                      lostFocusToChildElement = element[0].contains(activeElement);
+                      lostFocusToChildElement = element.find('.host')[0].contains(activeElement);
 
                   if(lostFocusToBrowserWindow || !lostFocusToChildElement) {
                     scope.hasFocus = false;
@@ -1230,7 +1232,7 @@
               .on('input-blur', function(e) {
                 //changed to use document click or focus, as this fires too soon and cancels
                 //automcomplete click events
-                //suggestionList.reset();
+                suggestionList.reset();
               });
 
           documentClick = function(e) {
