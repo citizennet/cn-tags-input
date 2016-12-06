@@ -956,12 +956,15 @@
 
                 self.items = items;
 
+                /*
                 if(!_.isEmpty(self.items)) {
                   self.show();
                 }
                 else {
                   self.reset();
                 }
+                */
+                self.show();
               };
 
           $timeout.cancel(debouncedLoadId);
@@ -989,14 +992,16 @@
               }
             }
           }, options.minLength ? options.debounceDelay : 0, false);
-
         };
+
         self.selectNext = function() {
           self.select(++self.index);
         };
+
         self.selectPrior = function() {
           self.select(--self.index);
         };
+
         self.select = function(index) {
           var list = self.itemMap || self.items;
           if(index < 0) {
@@ -1113,6 +1118,11 @@
 
           scope.track = function(item, key) {
             return getItemText(item, key);
+          };
+
+          scope.noResultsMessage = function({visible, query}) {
+            if(!query) return 'No options...';
+            return $sce.trustAsHtml(`No results for <b>${query}</b>...`);
           };
 
           tagsInput.registerProcessBulk(function(bulkTags) {
@@ -1522,13 +1532,13 @@
         <div ng-if="!suggestionList.items.length && !options.groupBy" 
              ng-class="{open: suggestionList.visible}">
           <ul class="autocomplete dropdown-menu">
-            <li class="dropdown-header">No items...</li>
+            <li class="dropdown-header" ng-bind-html="suggestionList.visible && noResultsMessage(suggestionList)"></li>
           </ul>
         </div>
         <div ng-if="suggestionList.items.length && isGroups" 
              ng-class="{open: suggestionList.visible}">
           <ul class="autocomplete dropdown-menu">
-            <li ng-if="!suggestionList.items[0].items.length && !suggestionList.items[1].items.length" class="dropdown-header">No items...</li>
+            <li ng-if="!suggestionList.items[0].items.length && !suggestionList.items[1].items.length" class="dropdown-header">No results...</li>
             <li ng-repeat-start="group in suggestionList.items"></li>
             <li class="dropdown-header" ng-show="group.items.length">{{group.label | titleCase}}</li>
             <li ng-repeat="item in group.items" 
