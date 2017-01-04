@@ -1513,9 +1513,9 @@
             </button>
           </div>
         </div>
-        <div class="btn-group help-block">
-          <button class="btn btn-xs" style="border-right: 1px solid #D6D7DB" ng-show="options.allowBulk && !showBulk" ng-click="showBulk = true">Batch</button>
-          <button class="btn btn-xs" ng-show="options.showClearAll && tagList.items.length" ng-click="tagList.removeAll()">Clear</button>
+        <div class="help-block">
+          <button class="btn btn-default btn-xs" ng-show="options.allowBulk && !showBulk" ng-click="showBulk = true">Batch</button>
+          <button class="btn btn-default btn-xs" ng-show="options.showClearAll && tagList.items.length" ng-click="tagList.removeAll()">Clear</button>
         </div>
         <div ng-show="showBulk" class="clearfix">
           <textarea class="form-control" ng-model="bulkTags" placeholder="{{options.bulkPlaceholder}}"></textarea>
@@ -1523,7 +1523,7 @@
             Press "Enter" to submit, "Shift+Enter" to add a new line
           </p>
           <div class="btn-group help-block">
-            <button class="btn btn-xs" style="border-right: 1px solid #D6D7DB" ng-click="showBulk = false">Cancel</button>
+            <button class="btn btn-default btn-xs" ng-click="showBulk = false">Cancel</button>
           </div>
         </div>`
     );
