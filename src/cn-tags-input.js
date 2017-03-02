@@ -1142,7 +1142,7 @@
                 if(options.tagsInput.maxTags && tagsInput.getTags().length >= options.tagsInput.maxTags) break;
                 var tag = tags[i];
                 var times = 1;
-                var multiple = tags[i].match(/(.*) ?\((\d+)\)$/);
+                var multiple = tags[i].match(/(.*) ?\[(\d+)\]$/);
 
                 if(multiple) {
                   tag = multiple[1];
@@ -1521,6 +1521,9 @@
           <textarea class="form-control" ng-model="bulkTags" placeholder="{{options.bulkPlaceholder}}"></textarea>
           <p class="help-block">
             Press "Enter" to submit, "Shift+Enter" to add a new line
+          </p>
+          <p class="help-block">
+            Add multiple with brackets, eg. "citizennet[10]"
           </p>
           <div class="btn-group help-block">
             <button class="btn btn-default btn-xs" ng-click="showBulk = false">Cancel</button>
