@@ -985,12 +985,15 @@
 
                 self.items = items;
 
+                /*
                 if(!_.isEmpty(self.items)) {
                   self.show();
                 }
                 else {
                   self.reset();
                 }
+                */
+                self.show();
               };
 
           $timeout.cancel(debouncedLoadId);
@@ -1018,7 +1021,6 @@
               }
             }
           }, options.minLength ? options.debounceDelay : 0, false);
-
         };
 
         self.selectNext = function() {
@@ -1145,6 +1147,11 @@
             return getItemText(item, key);
           };
 
+          scope.noResultsMessage = function({visible, query}) {
+            if(!query) return 'No options...';
+            return $sce.trustAsHtml(`No results for <b>${query}</b>...`);
+          };
+
           tagsInput.registerProcessBulk(function(bulkTags) {
             var tags = bulkTags.split(options.tagsInput.bulkDelimiter);
 
@@ -1162,7 +1169,7 @@
                 if(options.tagsInput.maxTags && tagsInput.getTags().length >= options.tagsInput.maxTags) break;
                 var tag = tags[i];
                 var times = 1;
-                var multiple = tags[i].match(/(.*) ?\((\d+)\)$/);
+                var multiple = tags[i].match(/(.*) ?\[(\d+)\]$/);
 
                 if(multiple) {
                   tag = multiple[1];
@@ -1537,17 +1544,20 @@
             </button>
           </div>
         </div>
-        <div class="btn-group help-block">
-          <button class="btn btn-xs" style="border-right: 1px solid #D6D7DB" ng-show="options.allowBulk && !showBulk" ng-click="showBulk = true">Batch</button>
-          <button class="btn btn-xs" ng-show="options.showClearAll && tagList.items.length" ng-click="tagList.removeAll()">Clear</button>
+        <div class="help-block">
+          <button class="btn btn-default btn-xs" ng-show="options.allowBulk && !showBulk" ng-click="showBulk = true">Batch</button>
+          <button class="btn btn-default btn-xs" ng-show="options.showClearAll && tagList.items.length" ng-click="tagList.removeAll()">Clear</button>
         </div>
         <div ng-show="showBulk" class="clearfix">
           <textarea class="form-control" ng-model="bulkTags" placeholder="{{options.bulkPlaceholder}}"></textarea>
           <p class="help-block">
             Press "Enter" to submit, "Shift+Enter" to add a new line
           </p>
+          <p class="help-block">
+            Add multiple with brackets, eg. "citizennet[10]"
+          </p>
           <div class="btn-group help-block">
-            <button class="btn btn-xs" style="border-right: 1px solid #D6D7DB" ng-click="showBulk = false">Cancel</button>
+            <button class="btn btn-default btn-xs" ng-click="showBulk = false">Cancel</button>
           </div>
         </div>`
     );
@@ -1556,13 +1566,13 @@
         <div ng-if="!suggestionList.items.length && !options.groupBy" 
              ng-class="{open: suggestionList.visible}">
           <ul class="autocomplete dropdown-menu">
-            <li class="dropdown-header">No items...</li>
+            <li class="dropdown-header" ng-bind-html="suggestionList.visible && noResultsMessage(suggestionList)"></li>
           </ul>
         </div>
         <div ng-if="suggestionList.items.length && isGroups" 
              ng-class="{open: suggestionList.visible}">
           <ul class="autocomplete dropdown-menu">
-            <li ng-if="!suggestionList.items[0].items.length && !suggestionList.items[1].items.length" class="dropdown-header">No items...</li>
+            <li ng-if="!suggestionList.items[0].items.length && !suggestionList.items[1].items.length" class="dropdown-header">No results...</li>
             <li ng-repeat-start="group in suggestionList.items"></li>
             <li class="dropdown-header" ng-show="group.items.length">{{group.label | titleCase}}</li>
             <li ng-repeat="item in group.items" 
