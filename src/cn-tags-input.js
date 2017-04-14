@@ -1,4 +1,5 @@
-/*!
+/*!;
+  tagsInput = null;
  * ngTagsInput v2.0.1
  * http://mbenford.github.io/ngTagsInput
  *
@@ -21,6 +22,12 @@
     comma: 188
   };
 
+  function empty(obj) {
+    _.forOwn(obj, function(_value, key, coll) {
+      _.set(coll, key, null);
+    });
+  }
+
   function SimplePubSub() {
     var events = {};
     return {
@@ -38,6 +45,10 @@
           handler.call(null, args);
         });
         return this;
+      },
+      destroy: function() {
+        empty(events);
+        events = null;
       }
     };
   }
@@ -177,11 +188,6 @@
       function TagList(options, events) {
         var self = {}, getTagText, setTagText, tagIsValid;
 
-        //getTagText = function(tag) {
-        //  if(!_.isObject(tag)) return tag;
-        //  return tag[options.displayProperty];
-        //};
-
         getTagText = options.getTagText = function(tag) {
           if(!_.isObject(tag)) return tag;
           return options.itemFormatter ? options.itemFormatter(tag) : tag[options.displayProperty];
@@ -206,7 +212,6 @@
                  !findInObjectArray(
                      self.items,
                      tag,
-                     //_.has(tag, options.valueProperty) ? options.valueProperty : getTagText
                      options.valueProperty || getTagText
                  );
         };
@@ -274,6 +279,11 @@
           });
         };
 
+        self.destroy = function() {
+          empty(self);
+          self = null;
+        };
+
         return self;
       }
 
@@ -318,7 +328,6 @@
             valueProperty: [String],
             allowLeftoverText: [Boolean, false],
             addFromAutocompleteOnly: [Boolean, false],
-            //tagClasses: [Object, null],
             tagClass: [String, ''],
             modelType: [String, 'array'],
             arrayValueType: [String, 'object'],
@@ -333,6 +342,23 @@
           });
 
           var options = $scope.options;
+          var input = options.input = $element.find('input.input');
+
+          function handleKeydown(e) {
+            $scope.events.trigger('input-keydown', e);
+          }
+
+          input.on('keydown', handleKeydown);
+
+          $scope.$on('$destroy', function() {
+            input.off('keydown', handleKeydown);
+            input = null;
+            empty(options);
+            options = null;
+            $scope.events.destroy();
+            $scope.tagList.destroy();
+            $scope.processBulk = null;
+          });
 
           if(!options.valueProperty &&
               (!/object|array/.test(options.modelType) || options.arrayValueType !== 'object')) {
@@ -353,11 +379,6 @@
           $scope.tagList = new TagList(options, $scope.events);
 
           this.registerAutocomplete = function() {
-            var input = options.input = $element.find('input.input');
-            input.on('keydown', function(e) {
-              $scope.events.trigger('input-keydown', e);
-            });
-
             return {
               addTag: function(tag) {
                 return $scope.tagList.add(tag);
@@ -377,7 +398,8 @@
               on: function(name, handler) {
                 $scope.events.on(name, handler);
                 return this;
-              },
+              }
+              ,
               registerProcessBulk: function(fn) {
                 $scope.processBulk = function() {
                   fn($scope.bulkTags).then(function() {
@@ -390,11 +412,16 @@
           };
         }],
         link: function(scope, element, attrs, ngModelCtrl) {
+          function tagsInputTag() {}
+          scope.__tag = new tagsInputTag();
+
           var hotkeys = [KEYS.enter, KEYS.comma, KEYS.space, KEYS.backspace],
               tagList = scope.tagList,
               events = scope.events,
               options = scope.options,
               input = element.find('input.input'),
+              textarea = element.find('textarea'),
+              div = element.find('div'),
               blurTimeout;
 
           if(attrs.inputId && !ngModelCtrl.$name) {
@@ -414,72 +441,63 @@
           }
 
           events
-              .on('tag-added', beforeAndAfter(scope.onBeforeTagAdded, scope.onTagAdded))
-              .on('tag-removed', beforeAndAfter(scope.onBeforeTagRemoved, scope.onTagRemoved))
-              .on('tag-changed', beforeAndAfter(scope.onBeforeTagChanged, scope.onTagChanged))
-              .on('tag-init', scope.onInit)
-              .on('tag-added tag-removed', function(e) {
-                if(!options.maxTags || options.maxTags > scope.tagList.items.length) {
-                  selectAll(options.input[0]);
+            .on('tag-added', beforeAndAfter(scope.onBeforeTagAdded, scope.onTagAdded))
+            .on('tag-removed', beforeAndAfter(scope.onBeforeTagRemoved, scope.onTagRemoved))
+            .on('tag-changed', beforeAndAfter(scope.onBeforeTagChanged, scope.onTagChanged))
+            .on('tag-init', scope.onInit)
+            .on('tag-added tag-removed', function(e) {
+              if(!options.maxTags || options.maxTags > scope.tagList.items.length) {
+                selectAll(options.input[0]);
+              }
+              else {
+                scope.newTag.text = '';
+              }
+              if(options.modelType === 'array') {
+                if(!options.valueProperty) {
+                  scope.tags = scope.tagList.items;
                 }
                 else {
-                  scope.newTag.text = '';
+                  scope.tags = getArrayModelVal(scope.tagList.items, options);
                 }
-                if(options.modelType === 'array') {
-                  //if(options.arrayValueType === 'object') {
+              }
+              else {
+                if(e.$event === 'tag-removed') {
+                  scope.tags = undefined;
+                }
+                else {
                   if(!options.valueProperty) {
-                    scope.tags = scope.tagList.items;
+                    scope.tags = e.$tag;
                   }
                   else {
-                    scope.tags = getArrayModelVal(scope.tagList.items, options);
-                    //console.log('on:tag-added:scope.tags:', scope.tags);
+                    scope.tags = _.has(e.$tag, options.valueProperty) ?
+                        e.$tag[options.valueProperty] : e.$tag[options.displayProperty];
                   }
                 }
-                else {
-                  if(e.$event === 'tag-removed') {
-                    //ngModelCtrl.$setViewValue(undefined);
-                    scope.tags = undefined;
-                  }
-                  else {
-                    //if(options.modelType === 'object') {
-                    if(!options.valueProperty) {
-                      //ngModelCtrl.$setViewValue(e.$tag);
-                      scope.tags = e.$tag;
-                    }
-                    else {
-                      //ngModelCtrl.$setViewValue(e.$tag.value);
-                      scope.tags = _.has(e.$tag, options.valueProperty) ?
-                          e.$tag[options.valueProperty] : e.$tag[options.displayProperty];
-                    }
-                    //scope.tags = [e.$tag];
-                  }
+              }
+            })
+            .on('invalid-tag', function() {
+              scope.newTag.invalid = true;
+            })
+            .on('input-change', function() {
+              tagList.selected = null;
+              scope.newTag.invalid = null;
+            })
+            .on('input-focus', function() {
+              ngModelCtrl.$setValidity('leftoverText', true);
+            })
+            .on('input-blur', function() {
+              if(!options.addFromAutocompleteOnly) {
+                if(options.addOnBlur && scope.newTag.text) {
+                  tagList.addText(scope.newTag.text);
                 }
-              })
-              .on('invalid-tag', function() {
-                scope.newTag.invalid = true;
-              })
-              .on('input-change', function() {
-                tagList.selected = null;
+              }
+
+              // Reset newTag
+              if(options.clearOnBlur) {
+                scope.newTag.text = '';
                 scope.newTag.invalid = null;
-              })
-              .on('input-focus', function() {
-                ngModelCtrl.$setValidity('leftoverText', true);
-              })
-              .on('input-blur', function() {
-                if(!options.addFromAutocompleteOnly) {
-                  if(options.addOnBlur && scope.newTag.text) {
-                    tagList.addText(scope.newTag.text);
-                  }
-
-                  //ngModelCtrl.$setValidity('leftoverText', options.allowLeftoverText ? true : !scope.newTag.text);
-                }
-
-                // Reset newTag
-                if(options.clearOnBlur) {
-                  scope.newTag.text = '';
-                  scope.newTag.invalid = null;
-                }
-              });
+              }
+            });
 
           scope.newTag = {text: '', invalid: null};
 
@@ -513,7 +531,6 @@
           var first = true;
 
           scope.triggerInit = function(value, prev) {
-            //console.log('triggerInit:', value, options.valueProperty);
             var criteria = options.valueProperty ? {[options.valueProperty]: value} : value;
             if(!tagList.items.length || !_.find(tagList.items, criteria)) {
               events.trigger('tag-init', {
@@ -521,7 +538,6 @@
                 $prev: prev,
                 $event: 'tag-init',
                 $setter: function(val) {
-                  //console.log('$setter:', val, options.valueProperty);
                   if(val && !_.isObject(val)) {
                     tagList.items = [{
                       [options.displayProperty]: val,
@@ -540,7 +556,6 @@
           scope.$watch('tags', function(value, prev) {
             var changed = !angular.equals(value, prev);
             var init    = !changed && first;
-            //console.log('$watch:tags:', value, prev, changed, init);
 
             if(init) {
               scope.triggerInit(value, prev);
@@ -613,17 +628,6 @@
                       (!tagList.items.length || tagList.items[0][options.valueProperty] !== value)) {
                     scope.triggerInit(value, prev);
                   }
-                  //else {
-                  //  var val = _.first(_.pluck(tagList.items, options.valueProperty));
-                  //  if(!val && val !== 0) val = _.first(_.pluck(tagList.items, options.displayProperty));
-                  //  if(val !== value) {
-                  //    var newTag = {};
-                  //    newTag[options.valueProperty] = value;
-                  //    tagList.items = [];
-                  //  }
-                    // todo: why were we overriding scope.tags? This will lead to recursion
-                    //scope.tags = val;
-                  //}
                 }
               }
             }
@@ -649,81 +653,61 @@
 
           }, true);
 
-          // stupid ugly hack to fix order between input and autocomplete events
-          $timeout(() => {
-            input
-              .on('keydown', function(e) {
-                // This hack is needed because jqLite doesn't implement stopImmediatePropagation properly.
-                // I've sent a PR to Angular addressing this issue and hopefully it'll be fixed soon.
-                // https://github.com/angular/angular.js/pull/4833
-                if(e.isImmediatePropagationStopped && e.isImmediatePropagationStopped()) {
-                  return;
-                }
-
-                var key = e.keyCode,
-                    isModifier = e.shiftKey || e.altKey || e.ctrlKey || e.metaKey,
-                    addKeys = {},
-                    shouldAdd, shouldRemove;
-
-                if(isModifier || hotkeys.indexOf(key) === -1) {
-                  return;
-                }
-
-                addKeys[KEYS.enter] = options.addOnEnter;
-                addKeys[KEYS.comma] = options.addOnComma;
-                addKeys[KEYS.space] = options.addOnSpace;
-
-                shouldAdd = !options.addFromAutocompleteOnly && addKeys[key];
-                shouldRemove = !shouldAdd && key === KEYS.backspace && scope.newTag.text.length === 0;
-
-                if(shouldAdd) {
-                  tagList.addText(scope.newTag.text);
-
-                  scope.$apply();
-                  e.preventDefault();
-                }
-                else if(shouldRemove) {
-                  var tag = tagList.removeLast();
-                  if(tag && options.enableEditingLastTag) {
-                    scope.newTag.text = tag[options.displayProperty];
-                  }
-
-                  scope.$apply();
-                  e.preventDefault();
-                }
-              })
-              .on('focus', onFocus)
-              .on('blur', function(e) {
-                blurTimeout = $timeout(function() {
-                  var activeElement = $document.prop('activeElement'),
-                      lostFocusToBrowserWindow = activeElement === input[0],
-                      lostFocusToChildElement = element.find('.host')[0].contains(activeElement);
-
-                  if(lostFocusToBrowserWindow || !lostFocusToChildElement) {
-                    scope.hasFocus = false;
-                    events.trigger('input-blur', e);
-                  }
-                }, 150); // timeout so that click event triggers first
-              });
-          });
-
-          element.find('textarea').on('keydown', function(e) {
-            if(e.keyCode === KEYS.enter) {
-              if(!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                e.preventDefault();
-                scope.processBulk();
-              }
+          function handleInputKeydown(e) {
+            // This hack is needed because jqLite doesn't implement stopImmediatePropagation properly.
+            // I've sent a PR to Angular addressing this issue and hopefully it'll be fixed soon.
+            // https://github.com/angular/angular.js/pull/4833
+            if(e.isImmediatePropagationStopped && e.isImmediatePropagationStopped()) {
+              return;
             }
-          });
 
-          element.find('div').on('click', function(e) {
-            if(!$(e.target).closest('.suggestion').length) {
+            var key = e.keyCode,
+                isModifier = e.shiftKey || e.altKey || e.ctrlKey || e.metaKey,
+                addKeys = {},
+                shouldAdd, shouldRemove;
+
+            if(isModifier || hotkeys.indexOf(key) === -1) {
+              return;
+            }
+
+            addKeys[KEYS.enter] = options.addOnEnter;
+            addKeys[KEYS.comma] = options.addOnComma;
+            addKeys[KEYS.space] = options.addOnSpace;
+
+            shouldAdd = !options.addFromAutocompleteOnly && addKeys[key];
+            shouldRemove = !shouldAdd && key === KEYS.backspace && scope.newTag.text.length === 0;
+
+            if(shouldAdd) {
+              tagList.addText(scope.newTag.text);
+
+              scope.$apply();
               e.preventDefault();
-              input[0].focus();
             }
-          });
+            else if(shouldRemove) {
+              var tag = tagList.removeLast();
+              if(tag && options.enableEditingLastTag) {
+                scope.newTag.text = tag[options.displayProperty];
+              }
 
-          function onFocus(e) {
+              scope.$apply();
+              e.preventDefault();
+            }
+          }
+
+          function handleInputBlur(e) {
+            blurTimeout = $timeout(function() {
+              var activeElement = $document.prop('activeElement'),
+                  lostFocusToBrowserWindow = activeElement === input[0],
+                  lostFocusToChildElement = element.find('.host')[0].contains(activeElement);
+
+              if(lostFocusToBrowserWindow || !lostFocusToChildElement) {
+                scope.hasFocus = false;
+                events.trigger('input-blur', e);
+              }
+            }, 150); // timeout so that click event triggers first
+          }
+
+          function handleInputFocus(e) {
             if(e) e.preventDefault();
             if(scope.ngDisabled) return;
 
@@ -736,6 +720,53 @@
 
             if(!/apply|digest/.test(scope.$root.$$phase)) scope.$apply();
           }
+
+          function handleTextareaKeydown(e) {
+            if(e.keyCode === KEYS.enter) {
+              if(!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                e.preventDefault();
+                scope.processBulk();
+              }
+            }
+          }
+
+          function handleDivClick(e) {
+            if(!$(e.target).closest('.suggestion').length) {
+              e.preventDefault();
+              input[0].focus();
+            }
+          }
+
+          // stupid ugly hack to fix order between input and autocomplete events
+          $timeout(function() {
+            input
+              .on('keydown', handleInputKeydown)
+              .on('focus', handleInputFocus)
+              .on('blur', handleInputBlur);
+          });
+
+          textarea.on('keydown', handleTextareaKeydown);
+
+          div.on('click', handleDivClick);
+
+          scope.$on('$destroy', function() {
+            input
+              .off('keydown', handleInputKeydown)
+              .off('focus', handleInputFocus)
+              .off('blur', handleInputBlur);
+
+            textarea.off('keydown', handleTextareaKeydown);
+            div.off('click', handleDivClick);
+            input = null;
+            textarea = null;
+            div = null;
+            events.destroy();
+            events = null;
+            first = null;
+            hotkeys = null;
+            options = null;
+            tagList = null;
+          });
         }
       };
     }]);
@@ -765,7 +796,6 @@
       function SuggestionList(scope, options) {
         var self = {}, debouncedLoadId, getDifference, lastPromise, groupList,
             splitListItems, formatItemText, mapIndexes;
-        
 
         groupList = function(list, groupBy) {
           var filtered = {},
@@ -875,7 +905,6 @@
             return !findInObjectArray(
                 array2,
                 item,
-                //_.has(item, options.tagsInput.valueProperty) ? options.tagsInput.valueProperty : options.tagsInput.getTagText
                 options.tagsInput.valueProperty || options.tagsInput.getTagText
             );
           });
@@ -1019,8 +1048,6 @@
           }
         };
 
-        //self.reset();
-
         return self;
       }
 
@@ -1045,6 +1072,9 @@
           var hotkeys = [KEYS.enter, KEYS.tab, KEYS.escape, KEYS.up, KEYS.down],
               suggestionList, tagsInput, options, getItemText, documentClick;
 
+          function autoCompleteTag() {}
+          scope.__tag = new autoCompleteTag();
+
           tagsInputConfig.load('autoComplete', scope, attrs, {
             debounceDelay: [Number, 250],
             minLength: [Number, 3],
@@ -1057,6 +1087,7 @@
           options = scope.options;
 
           tagsInput = tagsInputCtrl.registerAutocomplete();
+
           options.tagsInput = tagsInput.getOptions();
 
           if(options.minLength === 0/* && _.isArray(scope.source())*/) {
@@ -1083,8 +1114,6 @@
           scope.addSuggestion = function(e) {
             e.preventDefault();
 
-            //selectAll(e.target);
-
             var added = false;
 
             if(suggestionList.selected) {
@@ -1108,9 +1137,7 @@
 
           scope.highlight = function(item, key) {
             var text = getItemText(item, key);
-            //text = encodeHTML(text);
             if(suggestionList.query && options.highlightMatchedText) {
-              //text = replaceAll(text, encodeHTML(suggestionList.query), '<b>$&</b>');
               text = replaceAll(text, suggestionList.query, '<b>$&</b>');
             }
             return $sce.trustAsHtml('<a>' + text + '</a>');
@@ -1154,9 +1181,7 @@
                 if(_.isArray(results)) {
                   if(results.length) {
                     if(!options.skipFiltering) {
-                      //var filterBy = {};
                       var filterBy = tag;
-                      //filterBy[options.tagsInput.displayProperty] = tags[i];
                       results = $filter('cnFilter')(results, filterBy);
                     }
                     addTags(times)(results);
@@ -1176,74 +1201,70 @@
           });
 
           tagsInput
-              .on('input-change', function(value) {
-                if(value || !options.minLength) {
-                  suggestionList.load(value, tagsInput.getTags());
-                }
-                else {
-                  suggestionList.reset();
-                }
-              })
-              .on('input-focus', function(value) {
-                if(!suggestionList.visible && !options.minLength) {
-                  suggestionList.load(value, tagsInput.getTags());
-                }
-              })
-              .on('input-keydown', function(e) {
-                var key, handled;
-
-                if(hotkeys.indexOf(e.keyCode) === -1) {
-                  return;
-                }
-
-                // This hack is needed because jqLite doesn't implement stopImmediatePropagation properly.
-                // I've sent a PR to Angular addressing this issue and hopefully it'll be fixed soon.
-                // https://github.com/angular/angular.js/pull/4833
-                var immediatePropagationStopped = false;
-                e.stopImmediatePropagation = function() {
-                  immediatePropagationStopped = true;
-                  e.stopPropagation();
-                };
-                e.isImmediatePropagationStopped = function() {
-                  return immediatePropagationStopped;
-                };
-
-                if(suggestionList.visible) {
-                  key = e.keyCode;
-                  handled = false;
-
-                  if(key === KEYS.down) {
-                    suggestionList.selectNext();
-                    handled = true;
-                  }
-                  else if(key === KEYS.up) {
-                    suggestionList.selectPrior();
-                    handled = true;
-                  }
-                  else if(key === KEYS.escape) {
-                    suggestionList.reset();
-                    handled = true;
-                  }
-                  else if(key === KEYS.enter) {
-                    handled = scope.addSuggestion(e);
-                  }
-                  // adding seems to prevent tab action, need to figure out a way around that before uncommenting
-                  //else if(key === KEYS.tab && options.tagsInput.addOnBlur) {
-                  //  scope.addSuggestion(e);
-                  //}
-
-                  if(handled) {
-                    e.preventDefault();
-                    e.stopImmediatePropagation();
-                    scope.$apply();
-                  }
-                }
-              })
-              .on('input-blur', function(e) {
-                //changed to use document click or focus, as this fires too soon and cancels
-                //automcomplete click events
+            .on('input-change', function(value) {
+              if(value || !options.minLength) {
+                suggestionList.load(value, tagsInput.getTags());
+              }
+              else {
                 suggestionList.reset();
-              });
+              }
+            })
+            .on('input-focus', function(value) {
+              if(!suggestionList.visible && !options.minLength) {
+                suggestionList.load(value, tagsInput.getTags());
+              }
+            })
+            .on('input-keydown', function(e) {
+              var key, handled;
+
+              if(hotkeys.indexOf(e.keyCode) === -1) {
+                return;
+              }
+
+              // This hack is needed because jqLite doesn't implement stopImmediatePropagation properly.
+              // I've sent a PR to Angular addressing this issue and hopefully it'll be fixed soon.
+              // https://github.com/angular/angular.js/pull/4833
+              var immediatePropagationStopped = false;
+              e.stopImmediatePropagation = function() {
+                immediatePropagationStopped = true;
+                e.stopPropagation();
+              };
+              e.isImmediatePropagationStopped = function() {
+                return immediatePropagationStopped;
+              };
+
+              if(suggestionList.visible) {
+                key = e.keyCode;
+                handled = false;
+
+                if(key === KEYS.down) {
+                  suggestionList.selectNext();
+                  handled = true;
+                }
+                else if(key === KEYS.up) {
+                  suggestionList.selectPrior();
+                  handled = true;
+                }
+                else if(key === KEYS.escape) {
+                  suggestionList.reset();
+                  handled = true;
+                }
+                else if(key === KEYS.enter) {
+                  handled = scope.addSuggestion(e);
+                }
+
+                if(handled) {
+                  e.preventDefault();
+                  e.stopImmediatePropagation();
+                  scope.$apply();
+                }
+              }
+            })
+            .on('input-blur', function(e) {
+              //changed to use document click or focus, as this fires too soon and cancels
+              //automcomplete click events
+              suggestionList.reset();
+            });
 
           documentClick = function(e) {
             if(e.isDefaultPrevented()) return;
@@ -1258,10 +1279,20 @@
             }
           };
 
-          $document.on('click blur', documentClick);
+          $document
+            .on('click', documentClick)
+            .on('blur', documentClick);
 
           scope.$on('$destroy', function() {
-            $document.off('click blur', documentClick);
+            $document
+              .off('click', documentClick)
+              .off('blur', documentClick);
+
+            empty(tagsInput);
+            tagsInput = null;
+
+            empty(options);
+            options = null;
           });
         }
       };
