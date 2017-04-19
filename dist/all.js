@@ -703,7 +703,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         }
 
         // stupid ugly hack to fix order between input and autocomplete events
-        $timeout(function () {
+        var uglyHackTimeout = $timeout(function () {
           input.on('keydown', handleInputKeydown).on('focus', handleInputFocus).on('blur', handleInputBlur);
         });
 
@@ -725,6 +725,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           hotkeys = null;
           options = null;
           tagList = null;
+          $timeout.cancel(uglyHackTimeout);
         });
       }
     };
