@@ -738,7 +738,7 @@
           }
 
           // stupid ugly hack to fix order between input and autocomplete events
-          $timeout(function() {
+          let uglyHackTimeout = $timeout(function() {
             input
               .on('keydown', handleInputKeydown)
               .on('focus', handleInputFocus)
@@ -766,6 +766,7 @@
             hotkeys = null;
             options = null;
             tagList = null;
+            $timeout.cancel(uglyHackTimeout); 
           });
         }
       };
