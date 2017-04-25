@@ -1,10 +1,11 @@
 'use strict';
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-/*!
+/*!;
+  tagsInput = null;
  * ngTagsInput v2.0.1
  * http://mbenford.github.io/ngTagsInput
  *
@@ -27,6 +28,12 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
     comma: 188
   };
 
+  function empty(obj) {
+    _.forOwn(obj, function (_value, key, coll) {
+      _.set(coll, key, null);
+    });
+  }
+
   function SimplePubSub() {
     var events = {};
     return {
@@ -44,6 +51,10 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           handler.call(null, args);
         });
         return this;
+      },
+      destroy: function destroy() {
+        empty(events);
+        events = null;
       }
     };
   }
@@ -180,11 +191,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           setTagText,
           tagIsValid;
 
-      //getTagText = function(tag) {
-      //  if(!_.isObject(tag)) return tag;
-      //  return tag[options.displayProperty];
-      //};
-
       getTagText = options.getTagText = function (tag) {
         if (!_.isObject(tag)) return tag;
         return options.itemFormatter ? options.itemFormatter(tag) : tag[options.displayProperty];
@@ -203,9 +209,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
       tagIsValid = function tagIsValid(tag) {
         var tagText = getTagText(tag) + '';
 
-        return (!options.minLength || tagText.length >= options.minLength) && (!options.maxLength || tagText.length <= options.maxLength) && options.allowedTagsPattern.test(tagText) && !findInObjectArray(self.items, tag,
-        //_.has(tag, options.valueProperty) ? options.valueProperty : getTagText
-        options.valueProperty || getTagText);
+        return (!options.minLength || tagText.length >= options.minLength) && (!options.maxLength || tagText.length <= options.maxLength) && options.allowedTagsPattern.test(tagText) && !findInObjectArray(self.items, tag, options.valueProperty || getTagText);
       };
 
       self.items = [];
@@ -270,6 +274,11 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         });
       };
 
+      self.destroy = function () {
+        empty(self);
+        self = null;
+      };
+
       return self;
     }
 
@@ -314,7 +323,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           valueProperty: [String],
           allowLeftoverText: [Boolean, false],
           addFromAutocompleteOnly: [Boolean, false],
-          //tagClasses: [Object, null],
           tagClass: [String, ''],
           modelType: [String, 'array'],
           arrayValueType: [String, 'object'],
@@ -329,6 +337,23 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         });
 
         var options = $scope.options;
+        var input = options.input = $element.find('input.input');
+
+        function handleKeydown(e) {
+          $scope.events.trigger('input-keydown', e);
+        }
+
+        input.on('keydown', handleKeydown);
+
+        $scope.$on('$destroy', function () {
+          input.off('keydown', handleKeydown);
+          input = null;
+          empty(options);
+          options = null;
+          $scope.events.destroy();
+          $scope.tagList.destroy();
+          $scope.processBulk = null;
+        });
 
         if (!options.valueProperty && (!/object|array/.test(options.modelType) || options.arrayValueType !== 'object')) {
           options.valueProperty = 'value';
@@ -348,11 +373,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         $scope.tagList = new TagList(options, $scope.events);
 
         this.registerAutocomplete = function () {
-          var input = options.input = $element.find('input.input');
-          input.on('keydown', function (e) {
-            $scope.events.trigger('input-keydown', e);
-          });
-
           return {
             addTag: function addTag(tag) {
               return $scope.tagList.add(tag);
@@ -373,6 +393,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
               $scope.events.on(name, handler);
               return this;
             },
+
             registerProcessBulk: function registerProcessBulk(fn) {
               $scope.processBulk = function () {
                 fn($scope.bulkTags).then(function () {
@@ -385,11 +406,16 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         };
       }],
       link: function link(scope, element, attrs, ngModelCtrl) {
+        function tagsInputTag() {}
+        scope.__tag = new tagsInputTag();
+
         var hotkeys = [KEYS.enter, KEYS.comma, KEYS.space, KEYS.backspace],
             tagList = scope.tagList,
             events = scope.events,
             options = scope.options,
             input = element.find('input.input'),
+            textarea = element.find('textarea'),
+            div = element.find('div'),
             blurTimeout;
 
         if (attrs.inputId && !ngModelCtrl.$name) {
@@ -415,27 +441,20 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             scope.newTag.text = '';
           }
           if (options.modelType === 'array') {
-            //if(options.arrayValueType === 'object') {
             if (!options.valueProperty) {
               scope.tags = scope.tagList.items;
             } else {
               scope.tags = getArrayModelVal(scope.tagList.items, options);
-              //console.log('on:tag-added:scope.tags:', scope.tags);
             }
           } else {
             if (e.$event === 'tag-removed') {
-              //ngModelCtrl.$setViewValue(undefined);
               scope.tags = undefined;
             } else {
-              //if(options.modelType === 'object') {
               if (!options.valueProperty) {
-                //ngModelCtrl.$setViewValue(e.$tag);
                 scope.tags = e.$tag;
               } else {
-                //ngModelCtrl.$setViewValue(e.$tag.value);
                 scope.tags = _.has(e.$tag, options.valueProperty) ? e.$tag[options.valueProperty] : e.$tag[options.displayProperty];
               }
-              //scope.tags = [e.$tag];
             }
           }
         }).on('invalid-tag', function () {
@@ -450,8 +469,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             if (options.addOnBlur && scope.newTag.text) {
               tagList.addText(scope.newTag.text);
             }
-
-            //ngModelCtrl.$setValidity('leftoverText', options.allowLeftoverText ? true : !scope.newTag.text);
           }
 
           // Reset newTag
@@ -493,7 +510,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         var first = true;
 
         scope.triggerInit = function (value, prev) {
-          //console.log('triggerInit:', value, options.valueProperty);
           var criteria = options.valueProperty ? _defineProperty({}, options.valueProperty, value) : value;
           if (!tagList.items.length || !_.find(tagList.items, criteria)) {
             events.trigger('tag-init', {
@@ -501,7 +517,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
               $prev: prev,
               $event: 'tag-init',
               $setter: function $setter(val) {
-                //console.log('$setter:', val, options.valueProperty);
                 if (val && !_.isObject(val)) {
                   var _ref2;
 
@@ -518,7 +533,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         scope.$watch('tags', function (value, prev) {
           var changed = !angular.equals(value, prev);
           var init = !changed && first;
-          //console.log('$watch:tags:', value, prev, changed, init);
 
           if (init) {
             scope.triggerInit(value, prev);
@@ -582,17 +596,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
                 } else if (!_.isUndefined(value) && (!tagList.items.length || tagList.items[0][options.valueProperty] !== value)) {
                   scope.triggerInit(value, prev);
                 }
-                //else {
-                //  var val = _.first(_.pluck(tagList.items, options.valueProperty));
-                //  if(!val && val !== 0) val = _.first(_.pluck(tagList.items, options.displayProperty));
-                //  if(val !== value) {
-                //    var newTag = {};
-                //    newTag[options.valueProperty] = value;
-                //    tagList.items = [];
-                //  }
-                // todo: why were we overriding scope.tags? This will lead to recursion
-                //scope.tags = val;
-                //}
               }
             }
           } else if (!value && tagList.items.length) {
@@ -615,78 +618,61 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           first = false;
         }, true);
 
-        // stupid ugly hack to fix order between input and autocomplete events
-        $timeout(function () {
-          input.on('keydown', function (e) {
-            // This hack is needed because jqLite doesn't implement stopImmediatePropagation properly.
-            // I've sent a PR to Angular addressing this issue and hopefully it'll be fixed soon.
-            // https://github.com/angular/angular.js/pull/4833
-            if (e.isImmediatePropagationStopped && e.isImmediatePropagationStopped()) {
-              return;
-            }
-
-            var key = e.keyCode,
-                isModifier = e.shiftKey || e.altKey || e.ctrlKey || e.metaKey,
-                addKeys = {},
-                shouldAdd,
-                shouldRemove;
-
-            if (isModifier || hotkeys.indexOf(key) === -1) {
-              return;
-            }
-
-            addKeys[KEYS.enter] = options.addOnEnter;
-            addKeys[KEYS.comma] = options.addOnComma;
-            addKeys[KEYS.space] = options.addOnSpace;
-
-            shouldAdd = !options.addFromAutocompleteOnly && addKeys[key];
-            shouldRemove = !shouldAdd && key === KEYS.backspace && scope.newTag.text.length === 0;
-
-            if (shouldAdd) {
-              tagList.addText(scope.newTag.text);
-
-              scope.$apply();
-              e.preventDefault();
-            } else if (shouldRemove) {
-              var tag = tagList.removeLast();
-              if (tag && options.enableEditingLastTag) {
-                scope.newTag.text = tag[options.displayProperty];
-              }
-
-              scope.$apply();
-              e.preventDefault();
-            }
-          }).on('focus', onFocus).on('blur', function (e) {
-            blurTimeout = $timeout(function () {
-              var activeElement = $document.prop('activeElement'),
-                  lostFocusToBrowserWindow = activeElement === input[0],
-                  lostFocusToChildElement = element.find('.host')[0].contains(activeElement);
-
-              if (lostFocusToBrowserWindow || !lostFocusToChildElement) {
-                scope.hasFocus = false;
-                events.trigger('input-blur', e);
-              }
-            }, 150); // timeout so that click event triggers first
-          });
-        });
-
-        element.find('textarea').on('keydown', function (e) {
-          if (e.keyCode === KEYS.enter) {
-            if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-              e.preventDefault();
-              scope.processBulk();
-            }
+        function handleInputKeydown(e) {
+          // This hack is needed because jqLite doesn't implement stopImmediatePropagation properly.
+          // I've sent a PR to Angular addressing this issue and hopefully it'll be fixed soon.
+          // https://github.com/angular/angular.js/pull/4833
+          if (e.isImmediatePropagationStopped && e.isImmediatePropagationStopped()) {
+            return;
           }
-        });
 
-        element.find('div').on('click', function (e) {
-          if (!$(e.target).closest('.suggestion').length) {
+          var key = e.keyCode,
+              isModifier = e.shiftKey || e.altKey || e.ctrlKey || e.metaKey,
+              addKeys = {},
+              shouldAdd,
+              shouldRemove;
+
+          if (isModifier || hotkeys.indexOf(key) === -1) {
+            return;
+          }
+
+          addKeys[KEYS.enter] = options.addOnEnter;
+          addKeys[KEYS.comma] = options.addOnComma;
+          addKeys[KEYS.space] = options.addOnSpace;
+
+          shouldAdd = !options.addFromAutocompleteOnly && addKeys[key];
+          shouldRemove = !shouldAdd && key === KEYS.backspace && scope.newTag.text.length === 0;
+
+          if (shouldAdd) {
+            tagList.addText(scope.newTag.text);
+
+            scope.$apply();
             e.preventDefault();
-            input[0].focus();
-          }
-        });
+          } else if (shouldRemove) {
+            var tag = tagList.removeLast();
+            if (tag && options.enableEditingLastTag) {
+              scope.newTag.text = tag[options.displayProperty];
+            }
 
-        function onFocus(e) {
+            scope.$apply();
+            e.preventDefault();
+          }
+        }
+
+        function handleInputBlur(e) {
+          blurTimeout = $timeout(function () {
+            var activeElement = $document.prop('activeElement'),
+                lostFocusToBrowserWindow = activeElement === input[0],
+                lostFocusToChildElement = element.find('.host')[0].contains(activeElement);
+
+            if (lostFocusToBrowserWindow || !lostFocusToChildElement) {
+              scope.hasFocus = false;
+              events.trigger('input-blur', e);
+            }
+          }, 150); // timeout so that click event triggers first
+        }
+
+        function handleInputFocus(e) {
           if (e) e.preventDefault();
           if (scope.ngDisabled) return;
 
@@ -699,6 +685,48 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
           if (!/apply|digest/.test(scope.$root.$$phase)) scope.$apply();
         }
+
+        function handleTextareaKeydown(e) {
+          if (e.keyCode === KEYS.enter) {
+            if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+              e.preventDefault();
+              scope.processBulk();
+            }
+          }
+        }
+
+        function handleDivClick(e) {
+          if (!$(e.target).closest('.suggestion').length) {
+            e.preventDefault();
+            input[0].focus();
+          }
+        }
+
+        // stupid ugly hack to fix order between input and autocomplete events
+        var uglyHackTimeout = $timeout(function () {
+          input.on('keydown', handleInputKeydown).on('focus', handleInputFocus).on('blur', handleInputBlur);
+        });
+
+        textarea.on('keydown', handleTextareaKeydown);
+
+        div.on('click', handleDivClick);
+
+        scope.$on('$destroy', function () {
+          input.off('keydown', handleInputKeydown).off('focus', handleInputFocus).off('blur', handleInputBlur);
+
+          textarea.off('keydown', handleTextareaKeydown);
+          div.off('click', handleDivClick);
+          input = null;
+          textarea = null;
+          div = null;
+          events.destroy();
+          events = null;
+          first = null;
+          hotkeys = null;
+          options = null;
+          tagList = null;
+          $timeout.cancel(uglyHackTimeout);
+        });
       }
     };
   }]);
@@ -837,9 +865,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           });
         }
         return array1.filter(function (item) {
-          return !findInObjectArray(array2, item,
-          //_.has(item, options.tagsInput.valueProperty) ? options.tagsInput.valueProperty : options.tagsInput.getTagText
-          options.tagsInput.valueProperty || options.tagsInput.getTagText);
+          return !findInObjectArray(array2, item, options.tagsInput.valueProperty || options.tagsInput.getTagText);
         });
       };
 
@@ -977,8 +1003,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         }
       };
 
-      //self.reset();
-
       return self;
     }
 
@@ -1004,6 +1028,9 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             getItemText,
             documentClick;
 
+        function autoCompleteTag() {}
+        scope.__tag = new autoCompleteTag();
+
         tagsInputConfig.load('autoComplete', scope, attrs, {
           debounceDelay: [Number, 250],
           minLength: [Number, 3],
@@ -1016,6 +1043,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         options = scope.options;
 
         tagsInput = tagsInputCtrl.registerAutocomplete();
+
         options.tagsInput = tagsInput.getOptions();
 
         if (options.minLength === 0 /* && _.isArray(scope.source())*/) {
@@ -1040,8 +1068,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         scope.addSuggestion = function (e) {
           e.preventDefault();
 
-          //selectAll(e.target);
-
           var added = false;
 
           if (suggestionList.selected) {
@@ -1064,9 +1090,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
         scope.highlight = function (item, key) {
           var text = getItemText(item, key);
-          //text = encodeHTML(text);
           if (suggestionList.query && options.highlightMatchedText) {
-            //text = replaceAll(text, encodeHTML(suggestionList.query), '<b>$&</b>');
             text = replaceAll(text, suggestionList.query, '<b>$&</b>');
           }
           return $sce.trustAsHtml('<a>' + text + '</a>');
@@ -1077,8 +1101,8 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         };
 
         scope.noResultsMessage = function (_ref3) {
-          var visible = _ref3.visible;
-          var query = _ref3.query;
+          var visible = _ref3.visible,
+              query = _ref3.query;
 
           if (!query) return 'No options...';
           return $sce.trustAsHtml('No results for <b>' + query + '</b>...');
@@ -1113,9 +1137,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
               if (_.isArray(results)) {
                 if (results.length) {
                   if (!options.skipFiltering) {
-                    //var filterBy = {};
                     var filterBy = tag;
-                    //filterBy[options.tagsInput.displayProperty] = tags[i];
                     results = $filter('cnFilter')(results, filterBy);
                   }
                   addTags(times)(results);
@@ -1176,10 +1198,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             } else if (key === KEYS.enter) {
               handled = scope.addSuggestion(e);
             }
-            // adding seems to prevent tab action, need to figure out a way around that before uncommenting
-            //else if(key === KEYS.tab && options.tagsInput.addOnBlur) {
-            //  scope.addSuggestion(e);
-            //}
 
             if (handled) {
               e.preventDefault();
@@ -1205,10 +1223,16 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           }
         };
 
-        $document.on('click blur', documentClick);
+        $document.on('click', documentClick).on('blur', documentClick);
 
         scope.$on('$destroy', function () {
-          $document.off('click blur', documentClick);
+          $document.off('click', documentClick).off('blur', documentClick);
+
+          empty(tagsInput);
+          tagsInput = null;
+
+          empty(options);
+          options = null;
         });
       }
     };
