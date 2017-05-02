@@ -1550,7 +1550,7 @@
           <button class="btn btn-default btn-xs" ng-show="options.showClearAll && tagList.items.length" ng-click="tagList.removeAll()">Clear</button>
         </div>
         <div ng-show="showBulk" class="clearfix">
-          <textarea class="form-control" ng-model="bulkTags" placeholder="{{options.bulkPlaceholder}}"></textarea>
+          <textarea class="form-control" ng-model="bulkTags" ng-model-options="{'updateOn': 'input'}" placeholder="{{options.bulkPlaceholder}}"></textarea>
           <p class="help-block">
             Press "Enter" to submit, "Shift+Enter" to add a new line
           </p>
