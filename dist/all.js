@@ -1091,7 +1091,10 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         scope.highlight = function (item, key) {
           var text = getItemText(item, key);
           if (suggestionList.query && options.highlightMatchedText) {
-            text = replaceAll(text, suggestionList.query, '<b>$&</b>');
+            text = _(text.match(/(\<[^>]*>|[^<]*)/g)) // regex will create a list of all html and text nodes
+            .map(function (s) {
+              return s.length && s[0] !== '<' ? replaceAll(s, suggestionList.query, '<b>$&</b>') : s;
+            }).join('');
           }
           return $sce.trustAsHtml('<a>' + text + '</a>');
         };
@@ -1101,8 +1104,8 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         };
 
         scope.noResultsMessage = function (_ref3) {
-          var visible = _ref3.visible;
-          var query = _ref3.query;
+          var visible = _ref3.visible,
+              query = _ref3.query;
 
           if (!query) return 'No options...';
           return $sce.trustAsHtml('No results for <b>' + query + '</b>...');
