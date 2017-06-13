@@ -1139,7 +1139,10 @@
           scope.highlight = function(item, key) {
             var text = getItemText(item, key);
             if(suggestionList.query && options.highlightMatchedText) {
-              text = replaceAll(text, suggestionList.query, '<b>$&</b>');
+              text =
+                _(text.match(/(\<[^>]*>|[^<]*)/g)) // regex will create a list of all html and text nodes
+                .map(s => s.length && s[0] !== '<' ? replaceAll(s, suggestionList.query, '<b>$&</b>') : s)
+                .join('');
             }
             return $sce.trustAsHtml('<a>' + text + '</a>');
           };
