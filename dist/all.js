@@ -1,6 +1,6 @@
 'use strict';
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
@@ -661,6 +661,8 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
         function handleInputBlur(e) {
           blurTimeout = $timeout(function () {
+            // race condition can cause input to be destroyed before timeout ends
+            if (!input) return false;
             var activeElement = $document.prop('activeElement'),
                 lostFocusToBrowserWindow = activeElement === input[0],
                 lostFocusToChildElement = element.find('.host')[0].contains(activeElement);
@@ -1091,8 +1093,8 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         scope.highlight = function (item, key) {
           var text = getItemText(item, key);
           if (suggestionList.query && options.highlightMatchedText) {
-            text = _(text.match(/(\<[^>]*>|[^<]*)/g)) // regex will create a list of all html and text nodes
-            .map(function (s) {
+            text = _(text.match(/(\<[^>]*>|[^<]*)/g) // regex will create a list of all html and text nodes
+            ).map(function (s) {
               return s.length && s[0] !== '<' ? replaceAll(s, suggestionList.query, '<b>$&</b>') : s;
             }).join('');
           }

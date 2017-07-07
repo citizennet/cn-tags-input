@@ -696,6 +696,8 @@
 
           function handleInputBlur(e) {
             blurTimeout = $timeout(function() {
+              // race condition can cause input to be destroyed before timeout ends
+              if(!input) return false;
               var activeElement = $document.prop('activeElement'),
                   lostFocusToBrowserWindow = activeElement === input[0],
                   lostFocusToChildElement = element.find('.host')[0].contains(activeElement);
