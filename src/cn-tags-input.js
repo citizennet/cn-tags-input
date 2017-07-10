@@ -115,16 +115,20 @@
     if(!model || !tags || !tags.length) return false;
 
     if(!_.isArray(model)) {
-      if(options.valueProperty) return angular.equals(model, tags[0][valueProperty]);
-      return angular.equals(model, tags[0]);
+      return angular.equals(model, tags[0][options.valueProperty]) || angular.equals(model, tags[0]);
     }
 
     let array = getArrayModelVal(tags, options);
     //console.log('array, tags, options:', array, tags, options);
     return array.some((tag, i) => {
-      //console.log('tag, model[i]:', tag, model[i], angular.equals(tag, model[i]));
-      return angular.equals(tag, model[i]);
+      return angular.equals(model[i], tag) || angular.equals(model[i], tag[options.valueProperty]);
     });
+  }
+
+  function findTagForValue(tags, value, options) {
+    return tags.filter(function(tag) {
+      return tag[options.valueProperty] === value;
+    })[0];
   }
 
   function selectAll(input) {
@@ -392,14 +396,16 @@
               getTags: function() {
                 return $scope.tagList.items;
               },
+              getModel: function() {
+                return $scope.tags;
+              },
               getOptions: function() {
                 return options;
               },
               on: function(name, handler) {
                 $scope.events.on(name, handler);
                 return this;
-              }
-              ,
+              },
               registerProcessBulk: function(fn) {
                 $scope.processBulk = function() {
                   fn($scope.bulkTags).then(function() {
@@ -794,8 +800,8 @@
    * @param {number=} [maxResultsToShow=10] Maximum number of results to be displayed at a time.
    */
   tagsInput.directive('autoComplete', [
-    "$document", "$timeout", "$filter", "$sce", "tagsInputConfig", "$parse", 'Api',
-    function($document, $timeout, $filter, $sce, tagsInputConfig, $parse, Api) {
+    "$document", "$timeout", "$filter", "$sce", "tagsInputConfig", "$parse", 'Api', '$q',
+    function($document, $timeout, $filter, $sce, tagsInputConfig, $parse, Api, $q) {
       function SuggestionList(scope, options) {
         var self = {}, debouncedLoadId, getDifference, lastPromise, groupList,
             splitListItems, formatItemText, mapIndexes;
@@ -987,43 +993,40 @@
                 }
 
                 self.items = items;
-
-                /*
-                if(!_.isEmpty(self.items)) {
-                  self.show();
-                }
-                else {
-                  self.reset();
-                }
-                */
                 self.show();
               };
 
           $timeout.cancel(debouncedLoadId);
           self.query = query;
           debouncedLoadId = $timeout(function() {
-            var source = scope.source({$query: query});
-            if(_.isArray(source)) {
-              $timeout(function() {
-                processItems(source || []);
+            self._load(query, promise).then(processItems);
+          }, options.minLength ? options.debounceDelay : 0, false);
+        };
+
+        self._load = function(query, promise) {
+          var d = $q.defer();
+          var source = scope.source({$query: query});
+          if(_.isArray(source)) {
+            $timeout(function() {
+              d.resolve(source || []);
+            });
+          }
+          else {
+            if(!options.minLength) {
+              source.then(function(results) {
+                scope.source = function() {
+                  return results;
+                };
+                d.resolve(results || []);
               });
             }
             else {
-              if(!options.minLength) {
-                source.then(function(results) {
-                  scope.source = function() {
-                    return results;
-                  };
-                  processItems(results || []);
-                });
-              }
-              else {
-                promise = source;
-                lastPromise = promise;
-                promise.then(processItems);
-              }
+              promise = source;
+              lastPromise = promise;
+              return promise;
             }
-          }, options.minLength ? options.debounceDelay : 0, false);
+          }
+          return d.promise;
         };
 
         self.selectNext = function() {
@@ -1113,6 +1116,16 @@
           };
 
           scope.suggestionList = suggestionList;
+
+          if(options.minLength === 0 && tagsInput.getModel() !== undefined) {
+            suggestionList._load().then(function(results) {
+              var tag = findTagForValue(results, tagsInput.getModel(), options.tagsInput);
+              if(tag) {
+                tagsInput.getTags().length = 0; // hack to get even to retrigger
+                tagsInput.addTag(tag);
+              }
+            });
+          }
 
           scope.addSuggestion = function(e) {
             e.preventDefault();
