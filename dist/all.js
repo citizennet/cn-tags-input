@@ -1070,7 +1070,9 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
         scope.suggestionList = suggestionList;
 
-        if (options.minLength === 0 && tagsInput.getModel() !== undefined) {
+        var tagsValue = tagsInput.getModel();
+
+        if (options.minLength === 0 && tagsValue && tagsValue.length > 0) {
           suggestionList._load().then(function (results) {
             var tag = findTagForValue(results, tagsInput.getModel(), options.tagsInput);
             if (tag) {
