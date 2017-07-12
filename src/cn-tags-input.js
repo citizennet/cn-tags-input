@@ -111,7 +111,6 @@
   }
 
   function matchTagsWithModel(tags, model, options) {
-    //if(tags.length !== model.length) return false;
     if(!model || !tags || !tags.length) return false;
 
     if(!_.isArray(model)) {
@@ -119,7 +118,6 @@
     }
 
     let array = getArrayModelVal(tags, options);
-    //console.log('array, tags, options:', array, tags, options);
     return array.some((tag, i) => {
       return angular.equals(model[i], tag) || angular.equals(model[i], tag[options.valueProperty]);
     });
@@ -342,6 +340,7 @@
             bulkDelimiter: [RegExp, /, ?|\n/],
             bulkPlaceholder: [String, 'Enter a list separated by commas or new lines'],
             showClearAll: [Boolean, false],
+            showClearCache: [Boolean, false],
             showButton: [Boolean, false]
           });
 
@@ -413,6 +412,9 @@
                     $scope.bulkTags = '';
                   });
                 };
+              },
+              registerSuggestionList: function(suggestionList) {
+                $scope.tagList.suggestionList = suggestionList;
               }
             };
           };
@@ -577,14 +579,12 @@
             if(options.modelType === 'array') {
               if(_.isArray(value)) {
                 if(value.length) {
-                  //console.log('on:tags:', value, tagList.items, options.valueProperty);
                   if(!matchTagsWithModel(tagList.items, scope.tags, options)) {
                     scope.triggerInit(value, prev);
                   }
                   if(!matchTagsWithModel(tagList.items, scope.tags, options) || tagList.items.length !== scope.tags.length) {
                     tagList.items = makeObjectArray(value, options.displayProperty, options.valueProperty);
                     scope.tags = getArrayModelVal(tagList.items, options);
-                    //console.log('on:tags:scope.tags:', scope.tags);
                     return;
                   }
                 }
@@ -739,7 +739,10 @@
           }
 
           function handleDivClick(e) {
-            if(!$(e.target).closest('.suggestion').length) {
+            var $target = $(e.target);
+            if(!$target.closest('.suggestion').length &&
+               // we don't want any of the buttons underneath to trigger
+               !$target.parent().hasClass('help-block')) {
               e.preventDefault();
               input[0].focus();
             }
@@ -774,7 +777,7 @@
             hotkeys = null;
             options = null;
             tagList = null;
-            $timeout.cancel(uglyHackTimeout); 
+            $timeout.cancel(uglyHackTimeout);
           });
         }
       };
@@ -1003,6 +1006,20 @@
           }, options.minLength ? options.debounceDelay : 0, false);
         };
 
+        self.clearCache = function(event, query) {
+          event.preventDefault();
+          if(scope._source) scope.source = scope._source;
+          var source = scope.source;
+          source({$query: query, options: { refreshData: true }})
+            .then(function(results) {
+              scope._source = source;
+              scope.source = function() {
+                return results;
+              };
+              scope.tagsInput.focusInput();
+            });
+        }
+
         self._load = function(query, promise) {
           var d = $q.defer();
           var source = scope.source({$query: query});
@@ -1013,7 +1030,10 @@
           }
           else {
             if(!options.minLength) {
+              // fucking race conditions
+              var _source = scope.source;
               source.then(function(results) {
+                scope._source = _source;
                 scope.source = function() {
                   return results;
                 };
@@ -1093,6 +1113,7 @@
           options = scope.options;
 
           tagsInput = tagsInputCtrl.registerAutocomplete();
+          scope.tagsInput = tagsInput;
 
           options.tagsInput = tagsInput.getOptions();
 
@@ -1110,6 +1131,7 @@
           }
 
           suggestionList = new SuggestionList(scope, options);
+          tagsInput.registerSuggestionList(suggestionList);
 
           getItemText = options.tagsInput.itemFormatter || function(item) {
             return String(item[options.tagsInput.displayProperty]);
@@ -1496,63 +1518,63 @@
   /* HTML templates */
   tagsInput.run(["$templateCache", function($templateCache) {
     $templateCache.put('cnTagsInput/tags-input.html', `
-        <ul class="list-group cn-autocomplete-list" 
+        <ul class="list-group cn-autocomplete-list"
             ng-if="options.tagsStyle === 'list' && tagList.items.length && !options.hideTags">
-          <li class="list-group-item {{options.tagClass}}" 
-              ng-repeat="tag in tagList.items" 
+          <li class="list-group-item {{options.tagClass}}"
+              ng-repeat="tag in tagList.items"
               ng-class="{ selected: tag == tagList.selected }">
-            <button ng-if="!ngDisabled" 
-                    ng-click="tagList.remove($index)" 
+            <button ng-if="!ngDisabled"
+                    ng-click="tagList.remove($index)"
                     type="button" class="close pull-right">
               <span>&times;</span>
             </button>
-            <span class="tag-item" ng-bind-html="getDisplayHtml(tag)"/> 
+            <span class="tag-item" ng-bind-html="getDisplayHtml(tag)"/>
           </li>
         </ul>
         <div class="host clearfix"
              ng-hide="showBulk"
              ti-transclude-append="">
           <!-- hack to avoid browser's autocomplete -->
-          <input class="offscreen" 
-                 id="fake-{{attrs.id && attrs.id}}-input" 
+          <input class="offscreen"
+                 id="fake-{{attrs.id && attrs.id}}-input"
                  name="fake-{{attrs.id && attrs.id}}-input">
           <!-- end hack to avoid browser's autocomplete -->
-          <div class="input form-control tags" 
-               ng-class="{focused: hasFocus}" 
+          <div class="input form-control tags"
+               ng-class="{focused: hasFocus}"
                ng-disabled="ngDisabled">
-            <input class="input" 
+            <input class="input"
                    ng-disabled="ngDisabled"
                    id="{{attrs.inputId || attrs.id && attrs.id + '-input-' + uid}}"
                    name="{{attrs.inputId || attrs.id && attrs.id + '-input-' + uid}}"
-                   placeholder="{{options.placeholder}}" 
-                   tabindex="{{options.tabindex}}" 
-                   ng-model="newTag.text" 
-                   ng-model-options="{updateOn: 'default'}" 
-                   ng-change="newTagChange()" 
-                   ng-trim="false" 
+                   placeholder="{{options.placeholder}}"
+                   tabindex="{{options.tabindex}}"
+                   ng-model="newTag.text"
+                   ng-model-options="{updateOn: 'default'}"
+                   ng-change="newTagChange()"
+                   ng-trim="false"
                    ng-class="{
                       'invalid-tag': newTag.invalid,
                       'hide-below': options.maxTags === 1 && tagList.items.length
-                   }" 
+                   }"
                    ti-autosize=""
                    autocomplete="off">
             <span class="tag-item label {{options.tagClass}} label-block"
                   ng-if="options.tagsStyle !== 'list' && !options.hideTags && options.maxTags === 1 && tagList.items.length"
                   title="{{getDisplayText(tagList.items[0])}}">
-              <span ng-bind-html="getDisplayHtml(tagList.items[0])"/> 
-              <a class="remove-button" 
+              <span ng-bind-html="getDisplayHtml(tagList.items[0])"/>
+              <a class="remove-button"
                  ng-if="!ngDisabled && !options.dropdownIcon"
                  ng-click="tagList.remove()">
                 <span>&times;</span>
               </a>
             </span>
-            <ul class="tag-list" 
+            <ul class="tag-list"
                 ng-if="options.tagsStyle !== 'list' && !options.hideTags && options.maxTags !== 1">
-              <li class="tag-item label {{options.tagClass}}" 
-                  ng-repeat="tag in tagList.items" 
+              <li class="tag-item label {{options.tagClass}}"
+                  ng-repeat="tag in tagList.items"
                   ng-class="{ selected: tag == tagList.selected }">
-                <span ng-bind-html="getDisplayHtml(tag)"/> 
-                <a class="remove-button" 
+                <span ng-bind-html="getDisplayHtml(tag)"/>
+                <a class="remove-button"
                    ng-if="!ngDisabled"
                    ng-click="tagList.remove($index)">
                   <span>&times;</span>
@@ -1566,8 +1588,24 @@
           </div>
         </div>
         <div class="help-block">
-          <button class="btn btn-default btn-xs" ng-show="options.allowBulk && !showBulk" ng-click="showBulk = true">Batch</button>
-          <button class="btn btn-default btn-xs" ng-show="options.showClearAll && tagList.items.length" ng-click="tagList.removeAll()">Clear</button>
+          <button
+            class="btn btn-default btn-xs"
+            ng-show="options.allowBulk && !showBulk"
+            ng-click="showBulk = true"
+          > Batch
+          </button>
+          <button
+            class="btn btn-default btn-xs"
+            ng-show="options.showClearAll && tagList.items.length"
+            ng-click="tagList.removeAll()"
+          > Clear
+          </button>
+          <button
+            class="btn btn-default btn-xs"
+            ng-show="options.showClearCache && tagList.suggestionList"
+            ng-click="tagList.suggestionList.clearCache($event, newTag.text)"
+          > <i class="fa fa-repeat"/> Update Data
+          </button>
         </div>
         <div ng-show="showBulk" class="clearfix">
           <textarea class="form-control" ng-model="bulkTags" ng-model-options="{'updateOn': 'input'}" placeholder="{{options.bulkPlaceholder}}"></textarea>
@@ -1584,51 +1622,51 @@
     );
 
     $templateCache.put('cnTagsInput/auto-complete.html', `
-        <div ng-if="!suggestionList.items.length && !options.groupBy" 
+        <div ng-if="!suggestionList.items.length && !options.groupBy"
              ng-class="{open: suggestionList.visible}">
           <ul class="autocomplete dropdown-menu">
             <li class="dropdown-header" ng-bind-html="suggestionList.visible && noResultsMessage(suggestionList)"></li>
           </ul>
         </div>
-        <div ng-if="suggestionList.items.length && isGroups" 
+        <div ng-if="suggestionList.items.length && isGroups"
              ng-class="{open: suggestionList.visible}">
           <ul class="autocomplete dropdown-menu">
             <li ng-if="!suggestionList.items[0].items.length && !suggestionList.items[1].items.length" class="dropdown-header">No results...</li>
             <li ng-repeat-start="group in suggestionList.items"></li>
             <li class="dropdown-header" ng-show="group.items.length">{{group.label | titleCase}}</li>
-            <li ng-repeat="item in group.items" 
-                class="suggestion" 
-                ng-class="{selected: item == suggestionList.selected, disabled: item.disabled}" 
-                ng-click="addSuggestion($event)" 
-                ng-mouseenter="suggestionList.select(group.indexes[$index])" 
+            <li ng-repeat="item in group.items"
+                class="suggestion"
+                ng-class="{selected: item == suggestionList.selected, disabled: item.disabled}"
+                ng-click="addSuggestion($event)"
+                ng-mouseenter="suggestionList.select(group.indexes[$index])"
                 ng-bind-html="highlight(item, group.label)">
             </li>
             <li class="divider" ng-show="!$last && $parent.suggestionList.items[$index+1].items.length"></li>
             <li ng-repeat-end></li>
           </ul>
         </div>
-        <div ng-if="suggestionList.items.length && !isGroups && !options.groupBy" 
+        <div ng-if="suggestionList.items.length && !isGroups && !options.groupBy"
              ng-class="{open: suggestionList.visible}">
           <ul class="autocomplete dropdown-menu">
-            <li ng-repeat="item in suggestionList.items" 
-                class="suggestion" 
-                ng-class="{selected: item == suggestionList.selected, disabled: item.disabled}" 
-                ng-click="addSuggestion($event)" 
-                ng-mouseenter="suggestionList.select($index)" 
+            <li ng-repeat="item in suggestionList.items"
+                class="suggestion"
+                ng-class="{selected: item == suggestionList.selected, disabled: item.disabled}"
+                ng-click="addSuggestion($event)"
+                ng-mouseenter="suggestionList.select($index)"
                 ng-bind-html="highlight(item)">
             </li>
           </ul>
         </div>
-        <div ng-if="!isGroups && options.groupBy" 
+        <div ng-if="!isGroups && options.groupBy"
              ng-class="{open: suggestionList.visible}">
           <ul class="autocomplete dropdown-menu">
             <li ng-repeat-start="(group, items) in suggestionList.items"></li>
             <li class="dropdown-header" ng-show="items.length">{{group | titleCase}}</li>
-            <li ng-repeat="item in items" 
-                class="suggestion" 
-                ng-class="{selected: item == suggestionList.selected, disabled: item.disabled}" 
-                ng-click="addSuggestion($event)" 
-                ng-mouseenter="suggestionList.select(suggestionList.items[group].indexes[$index])" 
+            <li ng-repeat="item in items"
+                class="suggestion"
+                ng-class="{selected: item == suggestionList.selected, disabled: item.disabled}"
+                ng-click="addSuggestion($event)"
+                ng-mouseenter="suggestionList.select(suggestionList.items[group].indexes[$index])"
                 ng-bind-html="highlight(item)">
             </li>
             <li class="divider" ng-show="!$last && items.length"></li>
