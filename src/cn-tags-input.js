@@ -123,10 +123,10 @@
     });
   }
 
-  function findTagForValue(tags, value, options) {
+  function findTagsForValue(tags, value, options) {
     return tags.filter(function(tag) {
       return tag[options.valueProperty] === value;
-    })[0];
+    });
   }
 
   function selectAll(input) {
@@ -1141,12 +1141,15 @@
 
           var tagsValue = tagsInput.getModel();
 
-          if(options.minLength === 0 && tagsValue && tagsValue.length > 0) {
+          if(options.minLength === 0 && tagsValue && !angular.equals(tagsValue, [])) {
             suggestionList._load().then(function(results) {
-              var tag = findTagForValue(results, tagsInput.getModel(), options.tagsInput);
-              if(tag) {
-                tagsInput.getTags().length = 0; // hack to get even to retrigger
-                tagsInput.addTag(tag);
+              var tags = findTagsForValue(results, tagsInput.getModel(), options.tagsInput);
+              var cur = tagsInput.getTags();
+              if(!angular.equals(tags, tagsInput.getTags())) {
+                tagsInput.getTags().length = 0; // hack to get event to retrigger
+                tags.forEach(function(tag) {
+                  tagsInput.addTag(tag);
+                });
               }
             });
           }
