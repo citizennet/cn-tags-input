@@ -125,7 +125,9 @@
 
   function findTagsForValue(tags, value, options) {
     return tags.filter(function(tag) {
-      return tag[options.valueProperty] === value;
+      return options.modelType === 'array' ?
+        value && value.some(function(v) { return tag[options.valueProperty] === v}) :
+        tag[options.valueProperty] === value;
     });
   }
 
@@ -1143,10 +1145,10 @@
 
           if(options.minLength === 0 && tagsValue && !angular.equals(tagsValue, [])) {
             suggestionList._load().then(function(results) {
-              var tags = findTagsForValue(results, tagsInput.getModel(), options.tagsInput);
-              var cur = tagsInput.getTags();
-              if(!angular.equals(tags, tagsInput.getTags())) {
-                tagsInput.getTags().length = 0; // hack to get event to retrigger
+              var tags = findTagsForValue(results, tagsValue, options.tagsInput);
+              var curTags = tagsInput.getTags();
+              if(!angular.equals(tags, curTags)) {
+                curTags.length = 0; // hack to get event to retrigger
                 tags.forEach(function(tag) {
                   tagsInput.addTag(tag);
                 });
