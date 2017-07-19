@@ -126,8 +126,21 @@
   function findTagsForValue(tags, value, options) {
     return tags.filter(function(tag) {
       return options.modelType === 'array' ?
-        value && value.some(function(v) { return tag[options.valueProperty] === v}) :
-        tag[options.valueProperty] === value;
+        value && value.some(function(v) { return matchTag(tag, v, options.valueProperty, options.arrayValueType)}) :
+        matchTag(tag, value, options.valueProperty, options.modelType);
+    });
+  }
+
+  function matchTag(tag, value, valueProperty, modelType) {
+    var tagValue = valueProperty ? tag[valueProperty] : tag;
+    return modelType === 'object' ?
+      objectContains(value, tagValue) :
+      value == tagValue;
+  }
+
+  function objectContains(small, large) {
+    return Object.keys(small).every(function(key) {
+      return key === '$$hashKey' || small[key] == large[key];
     });
   }
 
