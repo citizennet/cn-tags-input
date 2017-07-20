@@ -118,17 +118,27 @@
     }
 
     let array = getArrayModelVal(tags, options);
-    return array.some((tag, i) => {
+    return _.some(array, (tag, i) => {
       return angular.equals(model[i], tag) || angular.equals(model[i], tag[options.valueProperty]);
     });
   }
 
   function findTagsForValue(tags, value, options) {
-    return tags.filter(function(tag) {
-      return options.modelType === 'array' ?
-        value && value.some(function(v) { return matchTag(tag, v, options.valueProperty, options.arrayValueType)}) :
-        matchTag(tag, value, options.valueProperty, options.modelType);
-    });
+    if(_.isArray(value)) {
+      var matches = _.filter(tags, tag => _.find(value, val =>
+                                                 matchTag(tag, val, options.valueProperty, options.arrayValueType)));
+
+      if(!options.addFromAutocompleteOnly && matches.length < value.length) {
+        console.log('UGH', matches, value);
+        _.each(value, v => {
+          if(!_.find(matches, m => matchTag(m, v, options.valueProperty, options.arrayValueType))) matches.push(v);
+        });
+      }
+
+      return matches;
+    }
+
+    return _.filter(tags, tag => matchTag(tag, value, options.valueProperty, options.arrayValueType));
   }
 
   function matchTag(tag, value, valueProperty, modelType) {
@@ -139,8 +149,15 @@
   }
 
   function objectContains(small, large) {
-    return Object.keys(small).every(function(key) {
-      return key === '$$hashKey' || small[key] == large[key];
+    if(angular.isArray(small)) {
+      return angular.equals(small, large);
+    }
+    return _.every(small, (val, key) => {
+      return key === '$$hashKey' || (
+        angular.isObject(val) ?
+          objectContains(val, large[key]) :
+          val == large[key]
+      );
     });
   }
 

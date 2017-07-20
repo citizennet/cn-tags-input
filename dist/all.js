@@ -120,16 +120,33 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
     }
 
     var array = getArrayModelVal(tags, options);
-    return array.some(function (tag, i) {
+    return _.some(array, function (tag, i) {
       return angular.equals(model[i], tag) || angular.equals(model[i], tag[options.valueProperty]);
     });
   }
 
   function findTagsForValue(tags, value, options) {
-    return tags.filter(function (tag) {
-      return options.modelType === 'array' ? value && value.some(function (v) {
-        return matchTag(tag, v, options.valueProperty, options.arrayValueType);
-      }) : matchTag(tag, value, options.valueProperty, options.modelType);
+    if (_.isArray(value)) {
+      var matches = _.filter(tags, function (tag) {
+        return _.find(value, function (val) {
+          return matchTag(tag, val, options.valueProperty, options.arrayValueType);
+        });
+      });
+
+      if (!options.addFromAutocompleteOnly && matches.length < value.length) {
+        console.log('UGH', matches, value);
+        _.each(value, function (v) {
+          if (!_.find(matches, function (m) {
+            return matchTag(m, v, options.valueProperty, options.arrayValueType);
+          })) matches.push(v);
+        });
+      }
+
+      return matches;
+    }
+
+    return _.filter(tags, function (tag) {
+      return matchTag(tag, value, options.valueProperty, options.arrayValueType);
     });
   }
 
@@ -139,8 +156,11 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
   }
 
   function objectContains(small, large) {
-    return Object.keys(small).every(function (key) {
-      return key === '$$hashKey' || small[key] == large[key];
+    if (angular.isArray(small)) {
+      return angular.equals(small, large);
+    }
+    return _.every(small, function (val, key) {
+      return key === '$$hashKey' || (angular.isObject(val) ? objectContains(val, large[key]) : val == large[key]);
     });
   }
 
