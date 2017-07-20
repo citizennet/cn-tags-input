@@ -134,7 +134,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
       });
 
       if (!options.addFromAutocompleteOnly && matches.length < value.length) {
-        console.log('UGH', matches, value);
         _.each(value, function (v) {
           if (!_.find(matches, function (m) {
             return matchTag(m, v, options.valueProperty, options.arrayValueType);
@@ -146,7 +145,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
     }
 
     return _.filter(tags, function (tag) {
-      return matchTag(tag, value, options.valueProperty, options.arrayValueType);
+      return matchTag(tag, value, options.valueProperty, options.modelType);
     });
   }
 
@@ -1134,7 +1133,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             if (!angular.equals(tags, curTags)) {
               curTags.length = 0; // hack to get event to retrigger
               tags.forEach(function (tag) {
-                tagsInput.addTag(tag);
+                return tagsInput.addTag(tag);
               });
             }
           });

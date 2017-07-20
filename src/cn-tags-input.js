@@ -129,7 +129,6 @@
                                                  matchTag(tag, val, options.valueProperty, options.arrayValueType)));
 
       if(!options.addFromAutocompleteOnly && matches.length < value.length) {
-        console.log('UGH', matches, value);
         _.each(value, v => {
           if(!_.find(matches, m => matchTag(m, v, options.valueProperty, options.arrayValueType))) matches.push(v);
         });
@@ -138,7 +137,7 @@
       return matches;
     }
 
-    return _.filter(tags, tag => matchTag(tag, value, options.valueProperty, options.arrayValueType));
+    return _.filter(tags, tag => matchTag(tag, value, options.valueProperty, options.modelType));
   }
 
   function matchTag(tag, value, valueProperty, modelType) {
@@ -1050,7 +1049,7 @@
               };
               scope.tagsInput.focusInput();
             });
-        }
+        };
 
         self._load = function(query, promise) {
           var d = $q.defer();
@@ -1175,14 +1174,12 @@
           var tagsValue = tagsInput.getModel();
 
           if(options.singleQuery && tagsValue && !angular.equals(tagsValue, [])) {
-            suggestionList._load().then(function(results) {
+            suggestionList._load().then(results => {
               var tags = findTagsForValue(results, tagsValue, options.tagsInput);
               var curTags = tagsInput.getTags();
               if(!angular.equals(tags, curTags)) {
                 curTags.length = 0; // hack to get event to retrigger
-                tags.forEach(function(tag) {
-                  tagsInput.addTag(tag);
-                });
+                tags.forEach(tag => tagsInput.addTag(tag));
               }
             });
           }
