@@ -1136,6 +1136,7 @@
           tagsInputConfig.load('autoComplete', scope, attrs, {
             debounceDelay: [Number, 250],
             minLength: [Number, 3],
+            singleQuery: [Boolean, false],
             highlightMatchedText: [Boolean, true],
             maxResultsToShow: [Number, 75],
             groupBy: [String, ''],
@@ -1173,7 +1174,7 @@
 
           var tagsValue = tagsInput.getModel();
 
-          if(options.minLength === 0 && tagsValue && !angular.equals(tagsValue, [])) {
+          if(options.singleQuery && tagsValue && !angular.equals(tagsValue, [])) {
             suggestionList._load().then(function(results) {
               var tags = findTagsForValue(results, tagsValue, options.tagsInput);
               var curTags = tagsInput.getTags();
