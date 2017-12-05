@@ -305,7 +305,8 @@
           return tag;
         };
 
-        self.removeAll = function() {
+        self.removeAll = function(e) {
+          e.preventDefault();
           var tags = self.items.splice(0, self.items.length);
           tags.forEach(function(tag) {
             events.trigger('tag-removed', {$tag: tag, $event: 'tag-removed'});
@@ -1630,7 +1631,7 @@
           <button
             class="btn btn-default btn-xs"
             ng-show="options.showClearAll && tagList.items.length"
-            ng-click="tagList.removeAll()"
+            ng-click="tagList.removeAll($event)"
           > Clear
           </button>
           <button
