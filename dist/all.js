@@ -1018,21 +1018,9 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             d.resolve(source || []);
           });
         } else {
-          if (!options.minLength) {
-            // fucking race conditions
-            var _source = scope.source;
-            source.then(function (results) {
-              scope._source = _source;
-              scope.source = function () {
-                return results;
-              };
-              d.resolve(results || []);
-            });
-          } else {
-            promise = source;
-            lastPromise = promise;
-            return promise;
-          }
+          promise = source;
+          lastPromise = promise;
+          return promise;
         }
         return d.promise;
       };
@@ -1166,7 +1154,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         scope.highlight = function (item, key) {
           var text = getItemText(item, key);
           if (suggestionList.query && options.highlightMatchedText) {
-            text = _(text.match(/(\<[^>]*>|[^<]*)/g)) // regex will create a list of all html and text nodes
+            text = _(text.match(/(<[^>]*>|[^<]*)/g)) // regex will create a list of all html and text nodes
             .map(function (s) {
               return s.length && s[0] !== '<' ? replaceAll(s, suggestionList.query, '<b>$&</b>') : s;
             }).join('');
@@ -1238,7 +1226,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             suggestionList.reset();
           }
         }).on('input-focus', function (value) {
-          if (!suggestionList.visible && !options.minLength) {
+          if (!suggestionList.visible) {
             suggestionList.load(value, tagsInput.getTags());
           }
         }).on('input-keydown', function (e) {
