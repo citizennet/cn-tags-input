@@ -489,10 +489,26 @@
             };
           }
 
+          function inlineChangeTags() {
+            return function() {
+              console.log('inline')
+              if (arguments.length > 0 && _.isArray(arguments[0].$tag)) {
+                let newTags = arguments[0].$tag;
+                const isObjectArray = _.every(newTags, (v) => typeof v === 'object' && v !== null)
+                if (isObjectArray) {
+                  if (scope.tagList && scope.tagList.items && newTags) {
+                    scope.tagList.items = newTags;
+                  }
+                }
+              }
+            };
+          }
+
           events
             .on('tag-added', beforeAndAfter(scope.onBeforeTagAdded, scope.onTagAdded))
             .on('tag-removed', beforeAndAfter(scope.onBeforeTagRemoved, scope.onTagRemoved))
             .on('tag-changed', beforeAndAfter(scope.onBeforeTagChanged, scope.onTagChanged))
+            .on('tag-changed', inlineChangeTags())
             .on('tag-init', scope.onInit)
             .on('tag-added tag-removed', function(e) {
               if(!options.maxTags || options.maxTags > scope.tagList.items.length) {
