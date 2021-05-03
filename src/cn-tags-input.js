@@ -473,15 +473,6 @@
           function beforeAndAfter(before, after) {
             return function() {
               var args = arguments;
-              if (arguments.length > 0 && _.isArray(arguments[0].$tag)) {
-                let newTags = arguments[0].$tag;
-                const isObjectArray = _.every(newTags, (v) => typeof v === 'object' && v !== null)
-                if (isObjectArray) {
-                  if (scope.tagList && scope.tagList.items && newTags) {
-                    scope.tagList.items = newTags;
-                  }
-                }
-              }
               before.apply(this, args);
               $timeout(function(){
                 after.apply(this, args);
@@ -491,7 +482,6 @@
 
           function inlineChangeTags() {
             return function() {
-              console.log('inline')
               if (arguments.length > 0 && _.isArray(arguments[0].$tag)) {
                 let newTags = arguments[0].$tag;
                 const isObjectArray = _.every(newTags, (v) => typeof v === 'object' && v !== null)
