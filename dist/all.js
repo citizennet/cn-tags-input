@@ -468,6 +468,17 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         function beforeAndAfter(before, after) {
           return function () {
             var args = arguments;
+            if (arguments.length > 0 && _.isArray(arguments[0].$tag)) {
+              var newTags = arguments[0].$tag;
+              var isObjectArray = _.every(newTags, function (v) {
+                return (typeof v === 'undefined' ? 'undefined' : _typeof(v)) === 'object' && v !== null;
+              });
+              if (isObjectArray) {
+                if (scope.tagList && scope.tagList.items && newTags) {
+                  scope.tagList.items = newTags;
+                }
+              }
+            }
             before.apply(this, args);
             $timeout(function () {
               after.apply(this, args);
@@ -475,7 +486,24 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           };
         }
 
-        events.on('tag-added', beforeAndAfter(scope.onBeforeTagAdded, scope.onTagAdded)).on('tag-removed', beforeAndAfter(scope.onBeforeTagRemoved, scope.onTagRemoved)).on('tag-changed', beforeAndAfter(scope.onBeforeTagChanged, scope.onTagChanged)).on('tag-init', scope.onInit).on('tag-added tag-removed', function (e) {
+        function inlineChangeTags() {
+          return function () {
+            console.log('inline');
+            if (arguments.length > 0 && _.isArray(arguments[0].$tag)) {
+              var newTags = arguments[0].$tag;
+              var isObjectArray = _.every(newTags, function (v) {
+                return (typeof v === 'undefined' ? 'undefined' : _typeof(v)) === 'object' && v !== null;
+              });
+              if (isObjectArray) {
+                if (scope.tagList && scope.tagList.items && newTags) {
+                  scope.tagList.items = newTags;
+                }
+              }
+            }
+          };
+        }
+
+        events.on('tag-added', beforeAndAfter(scope.onBeforeTagAdded, scope.onTagAdded)).on('tag-removed', beforeAndAfter(scope.onBeforeTagRemoved, scope.onTagRemoved)).on('tag-changed', beforeAndAfter(scope.onBeforeTagChanged, scope.onTagChanged)).on('tag-changed', inlineChangeTags()).on('tag-init', scope.onInit).on('tag-added tag-removed', function (e) {
           if (!options.maxTags || options.maxTags > scope.tagList.items.length) {
             selectAll(options.input[0]);
           } else {
