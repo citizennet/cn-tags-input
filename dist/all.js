@@ -468,17 +468,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         function beforeAndAfter(before, after) {
           return function () {
             var args = arguments;
-            if (arguments.length > 0 && _.isArray(arguments[0].$tag)) {
-              var newTags = arguments[0].$tag;
-              var isObjectArray = _.every(newTags, function (v) {
-                return (typeof v === 'undefined' ? 'undefined' : _typeof(v)) === 'object' && v !== null;
-              });
-              if (isObjectArray) {
-                if (scope.tagList && scope.tagList.items && newTags) {
-                  scope.tagList.items = newTags;
-                }
-              }
-            }
             before.apply(this, args);
             $timeout(function () {
               after.apply(this, args);
@@ -488,7 +477,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
         function inlineChangeTags() {
           return function () {
-            console.log('inline');
             if (arguments.length > 0 && _.isArray(arguments[0].$tag)) {
               var newTags = arguments[0].$tag;
               var isObjectArray = _.every(newTags, function (v) {
