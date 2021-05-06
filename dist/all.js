@@ -980,7 +980,22 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           if (scope.isGroups) {
             _.each(items, function (group) {
               group.items = getDifference(group.items, tags);
-              if (query) group.items = $filter('cnFilter')(group.items, filterBy);
+              if (query) {
+                var reconciliateItems = {};
+                group.items.map(function (item, idx) {
+                  item.__uniqueid = _.uniqueId('__uniqueid');
+                  reconciliateItems[item.__uniqueid] = _.cloneDeep(item);
+                  if ('key' in item) delete item.key;
+                  if ('childKey' in item) delete item.childKey;
+                });
+                group.items = $filter('cnFilter')(group.items, filterBy);
+                group.items.map(function (item) {
+                  var ref = reconciliateItems[item.__uniqueid];
+                  if ('key' in ref) item.key = ref.key;
+                  if ('childKey' in ref) item.childKey = ref.childKey;
+                  delete item.__uniqueid;
+                });
+              }
 
               group.items = group.items.slice(0, options.maxResultsToShow);
             });
