@@ -281,7 +281,6 @@
           else {
             events.trigger('invalid-tag', {$tag: tag, $event: 'invalid-tag'});
           }
-
           return tag;
         };
 
@@ -484,7 +483,7 @@
             return function() {
               if (arguments.length > 0 && _.isArray(arguments[0].$tag)) {
                 let newTags = arguments[0].$tag;
-                const isObjectArray = _.every(newTags, (v) => typeof v === 'object' && v !== null);
+                const isObjectArray = _.every(newTags, (v) => typeof v === 'object' && v !== null && options.displayProperty && v[options.displayProperty]);
                 if (isObjectArray) {
                   if (scope.tagList && scope.tagList.items && newTags) {
                     scope.tagList.items = newTags;

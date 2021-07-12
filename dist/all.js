@@ -277,7 +277,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         } else {
           events.trigger('invalid-tag', { $tag: tag, $event: 'invalid-tag' });
         }
-
         return tag;
       };
 
@@ -480,7 +479,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             if (arguments.length > 0 && _.isArray(arguments[0].$tag)) {
               var newTags = arguments[0].$tag;
               var isObjectArray = _.every(newTags, function (v) {
-                return (typeof v === 'undefined' ? 'undefined' : _typeof(v)) === 'object' && v !== null;
+                return (typeof v === 'undefined' ? 'undefined' : _typeof(v)) === 'object' && v !== null && options.displayProperty && v[options.displayProperty];
               });
               if (isObjectArray) {
                 if (scope.tagList && scope.tagList.items && newTags) {
