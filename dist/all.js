@@ -115,11 +115,16 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
   function matchTagsWithModel(tags, model, options) {
     if (!model || !tags || !tags.length) return false;
 
+    console.log('matchTagsWithModel', tags, model, options);
     if (!_.isArray(model)) {
       return angular.equals(model, tags[0][options.valueProperty]) || angular.equals(model, tags[0]);
     }
 
     var array = getArrayModelVal(tags, options);
+    console.log('array', array);
+    console.log('_.some', _.some(array, function (tag, i) {
+      return angular.equals(model[i], tag) || angular.equals(model[i], tag[options.valueProperty]);
+    }));
     return _.some(array, function (tag, i) {
       return angular.equals(model[i], tag) || angular.equals(model[i], tag[options.valueProperty]);
     });
@@ -267,6 +272,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
         setTagText(tag, tagText);
 
+        console.log('add', tag);
         if (tagIsValid(tag)) {
           if (options.maxTags && self.items.length >= options.maxTags) {
             self.items.pop();
@@ -277,7 +283,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         } else {
           events.trigger('invalid-tag', { $tag: tag, $event: 'invalid-tag' });
         }
-
+        console.log(self.items);
         return tag;
       };
 
@@ -411,6 +417,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         this.registerAutocomplete = function () {
           return {
             addTag: function addTag(tag) {
+              console.log('addTag', tag);
               return $scope.tagList.add(tag);
             },
             focusInput: function focusInput() {
@@ -477,13 +484,19 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
         function inlineChangeTags() {
           return function () {
+            console.log(arguments);
             if (arguments.length > 0 && _.isArray(arguments[0].$tag)) {
               var newTags = arguments[0].$tag;
               var isObjectArray = _.every(newTags, function (v) {
-                return (typeof v === 'undefined' ? 'undefined' : _typeof(v)) === 'object' && v !== null;
+                return (typeof v === 'undefined' ? 'undefined' : _typeof(v)) === 'object' && v !== null && v[options.displayProperty];
               });
+              console.log('isObjectArray', isObjectArray);
               if (isObjectArray) {
                 if (scope.tagList && scope.tagList.items && newTags) {
+                  console.log('newTags', newTags);
+                  console.log('scope', scope);
+                  console.log('this', this);
+                  console.log('scope.tagList.items', scope.tagList.items);
                   scope.tagList.items = newTags;
                 }
               }
