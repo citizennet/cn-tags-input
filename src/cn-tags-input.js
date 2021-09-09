@@ -166,6 +166,30 @@
     }
   }
 
+  function sortResults(results, tag, displayProperty) {
+    const valueFor = val => {
+      return displayProperty && val[displayProperty] ? val[displayProperty] : val;
+    };
+    var first = _.remove(results, result => {
+      return _.startsWith(valueFor(result), valueFor(tag));
+    });
+    first = _.sortBy(first, [
+      result => { return valueFor(result).length; }
+    ]);
+    const reTag = new RegExp(valueFor(tag), "i");
+    var second = _.remove(results, result => {
+      return reTag.test(valueFor(result));
+    });
+    second = _.sortBy(second, [
+      result => { return valueFor(result).search(reTag);},
+      result => { return valueFor(result).length; }
+    ]);
+    var third = _.sortBy(results, [
+      result => { return valueFor(result).length; }
+    ]);
+    return first.concat(second, third);
+  }
+
   var tagsInput = angular.module('cnTagsInput', []);
 
   /**
@@ -214,6 +238,7 @@
    * @param {boolean=} [hideTags=false] Flag indicating whether to hide tag list (for manually displaying tag list in other way)
    * @param {boolean=} [dropdownIcon=false] Flag to show icon on right side
    * @param {string=} [tagsStyle='tags'] Default tags style
+   * @param {boolean=} sortFilteredResults Flag to set whether to sort autocomplete list
    */
   tagsInput.directive('tagsInput', [
     "$timeout", "$document", "tagsInputConfig", "$sce", "$rootScope",
@@ -369,8 +394,8 @@
             tagsStyle: [String, 'tags'],
             allowBulk: [Boolean, false],
             bulkDelimiter: [RegExp, /, ?|\n/],
-            bulkAddExact: [Boolean, false],
             bulkPlaceholder: [String, 'Enter a list separated by commas or new lines'],
+            sortFilteredResults: [Boolean, false],
             showClearAll: [Boolean, false],
             showClearCache: [Boolean, false],
             showButton: [Boolean, false]
@@ -439,10 +464,9 @@
               },
               registerProcessBulk: function(fn) {
                 $scope.processBulk = function() {
-                  fn($scope.bulkTags).then(function(message) {
+                  fn($scope.bulkTags).then(function() {
                     $scope.showBulk = false;
                     $scope.bulkTags = '';
-                    $scope.bulkAddExactMessage = message;
                   });
                 };
               },
@@ -1029,6 +1053,9 @@
                         if ('childKey' in item) delete item.childKey;
                       });
                       group.items = $filter('cnFilter')(group.items, filterBy);
+                      if (options.tagsInput.sortFilteredResults) {
+                        group.items = sortResults(group.items, filterBy, options.tagsInput.displayProperty);
+                      }
                       group.items.map((item) => {
                         let ref = reconciliateItems[item.__uniqueid];
                         if ('key' in ref) item.key = ref.key;
@@ -1047,6 +1074,10 @@
                   items = getDifference(items, tags);
                   if(query && !options.skipFiltering) {
                     items = $filter('cnFilter')(items, filterBy);
+                  }
+
+                  if (options.tagsInput.sortFilteredResults) {
+                    items = sortResults(items, filterBy, options.tagsInput.displayProperty);
                   }
 
                   items = items.slice(0, options.maxResultsToShow);
@@ -1250,72 +1281,52 @@
           tagsInput.registerProcessBulk(function(bulkTags) {
             var tags = bulkTags.split(options.tagsInput.bulkDelimiter);
 
-            var processExactMatches = function(tags) {
-              var matches = 0;
-              var nonMatches = 0;
+            var addTags = function(i) {
+              return function(data) {
+                _.times(i, function(i) {
+                  if(data[i]) tagsInput.addTag(data[i]);
+                });
+              };
+            };
 
+            // in case a query is involved...doesn't hurt to use even if not
+            return Api.batch(function() {
               for(var i = 0, l = tags.length; i < l; i++) {
                 if(options.tagsInput.maxTags && tagsInput.getTags().length >= options.tagsInput.maxTags) break;
-                let exactMatch = _.find(scope.source, [options.tagsInput.displayProperty, tag]);
-                if (exactMatch) {
-                  matches ++;
-                  tagsInput.addTag(exactMatch);
-                } else {
-                  nonMatches ++;
+                var tag = tags[i];
+                var times = 1;
+                var multiple = tags[i].match(/(.*) ?\[(\d+)\]$/);
+
+                if(multiple) {
+                  tag = multiple[1];
+                  times = parseInt(multiple[2]);
+                }
+
+                var results = scope.source({$query: tag});
+
+                if(_.isArray(results)) {
+                  if(results.length) {
+                    if(!options.skipFiltering) {
+                      var filterBy = tag;
+                      results = $filter('cnFilter')(results, filterBy);
+                    }
+                    if (options.tagsInput.sortFilteredResults) {
+                      results = sortResults(results, tag, options.tagsInput.displayProperty);
+                    }
+                    addTags(times)(results);
+                  }
+                  else if(!options.tagsInput.addFromAutocompleteOnly) {
+                    tagsInput.addTag({
+                      [options.tagsInput.displayProperty]: tag,
+                      [options.tagsInput.valueProperty]: tag
+                    });
+                  }
+                }
+                else if(results.then) {
+                  results.then(addTags(times));
                 }
               }
-              return "Added " + matches + ". Could not find" + nonMatches + "."
-            }
-
-            if (options.tagsInput.bulkAddExact) {
-              return processExactMatches(tags);
-            }
-
-            else {
-              var addTags = function(i) {
-                return function(data) {
-                  _.times(i, function(i) {
-                    if(data[i]) tagsInput.addTag(data[i]);
-                  });
-                };
-              };
-
-              // in case a query is involved...doesn't hurt to use even if not
-              return Api.batch(function() {
-                for(var i = 0, l = tags.length; i < l; i++) {
-                  if(options.tagsInput.maxTags && tagsInput.getTags().length >= options.tagsInput.maxTags) break;
-                  var tag = tags[i];
-                  var times = 1;
-                  var multiple = tags[i].match(/(.*) ?\[(\d+)\]$/);
-
-                  if(multiple) {
-                    tag = multiple[1];
-                    times = parseInt(multiple[2]);
-                  }
-
-                  var results = scope.source({$query: tag});
-
-                  if(_.isArray(results)) {
-                    if(results.length) {
-                      if(!options.skipFiltering) {
-                        var filterBy = tag;
-                        results = $filter('cnFilter')(results, filterBy);
-                      }
-                      addTags(times)(results);
-                    }
-                    else if(!options.tagsInput.addFromAutocompleteOnly) {
-                      tagsInput.addTag({
-                        [options.tagsInput.displayProperty]: tag,
-                        [options.tagsInput.valueProperty]: tag
-                      });
-                    }
-                  }
-                  else if(results.then) {
-                    results.then(addTags(times));
-                  }
-                }
-              });
-            }
+            });
           });
 
           tagsInput
@@ -1662,7 +1673,6 @@
             </button>
           </div>
         </div>
-        <div class="help-block" ng-show="!showBulk && bulkAddExactMessage" ng-bind="bulkAddExactMessage"></div>
         <div class="help-block">
           <button
             class="btn btn-default btn-xs"
