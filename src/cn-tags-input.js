@@ -539,6 +539,9 @@
                 else {
                   scope.tags = getArrayModelVal(scope.tagList.items, options);
                 }
+                if (scope.tagList.items.length >= options.minTags) {
+                  ngModelCtrl.$setValidity('tv4-400', true);
+                }
               }
               else {
                 if(e.$event === 'tag-removed') {
