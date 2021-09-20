@@ -529,6 +529,9 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             } else {
               scope.tags = getArrayModelVal(scope.tagList.items, options);
             }
+            if (scope.tagList.items.length >= options.minTags) {
+              ngModelCtrl.$setValidity('tv4-400', true);
+            }
           } else {
             if (e.$event === 'tag-removed') {
               scope.tags = undefined;
