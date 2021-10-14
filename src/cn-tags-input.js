@@ -337,6 +337,20 @@
           });
         };
 
+        self.copyToClipboard = function() {
+          var copyElement = document.createElement("textarea");
+          copyElement.style.position = 'fixed';
+          copyElement.style.opacity = '0';
+          copyElement.textContent = self.items.map(
+            e => options.displayProperty && e[options.displayProperty] ? e[options.displayProperty] : e
+          ).join('\n');
+          var body = document.getElementsByTagName('body')[0];
+          body.appendChild(copyElement);
+          copyElement.select();
+          document.execCommand('copy');
+          body.removeChild(copyElement);
+        };
+
         self.destroy = function() {
           empty(self);
           self = null;
@@ -1694,6 +1708,12 @@
             ng-show="options.showClearCache && tagList.suggestionList"
             ng-click="tagList.suggestionList.clearCache($event, newTag.text)"
           > <i class="fa fa-repeat"/> Update Data
+          </button>
+          <button
+            class="btn btn-default btn-xs"
+            ng-show="options.allowBulk && !showBulk && tagList.items.length"
+            ng-click="tagList.copyToClipboard()"
+          > <i class="fa fa-copy"/> Copy
           </button>
         </div>
         <div ng-show="showBulk" class="clearfix">
