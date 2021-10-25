@@ -407,6 +407,7 @@
             dropdownIcon: [Boolean, false],
             tagsStyle: [String, 'tags'],
             allowBulk: [Boolean, false],
+            bulkSingleQueryUrl: [String],
             bulkDelimiter: [RegExp, /, ?|\n/],
             bulkPlaceholder: [String, 'Enter a list separated by commas or new lines'],
             sortFilteredResults: [Boolean, false],
@@ -1306,6 +1307,12 @@
               };
             };
 
+            if (options.tagsInput.bulkSingleQueryUrl) {
+              let q = _.join(tags, ",")
+              return Api.get({
+                url: options.tagsInput.bulkSingleQueryUrl + "?q=" + q
+              }).then(response => {_.forEach(response, item => tagsInput.addTag(item))})
+            }
             // in case a query is involved...doesn't hurt to use even if not
             return Api.batch(function() {
               for(var i = 0, l = tags.length; i < l; i++) {
