@@ -1308,10 +1308,10 @@
             };
 
             if (options.tagsInput.bulkSingleQueryUrl) {
-              let q = _.join(tags, ",")
+              let q = _.join(_.map(tags, tag => {return encodeURIComponent(tag);}, ","));
               return Api.get({
                 url: options.tagsInput.bulkSingleQueryUrl + "?q=" + q
-              }).then(response => {_.forEach(response, item => tagsInput.addTag(item))})
+              }).then(response => {_.forEach(response, item => tagsInput.addTag(item))});
             }
             // in case a query is involved...doesn't hurt to use even if not
             return Api.batch(function() {
