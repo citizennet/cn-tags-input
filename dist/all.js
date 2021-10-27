@@ -404,6 +404,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           dropdownIcon: [Boolean, false],
           tagsStyle: [String, 'tags'],
           allowBulk: [Boolean, false],
+          bulkSingleQueryUrl: [String],
           bulkDelimiter: [RegExp, /, ?|\n/],
           bulkPlaceholder: [String, 'Enter a list separated by commas or new lines'],
           sortFilteredResults: [Boolean, false],
@@ -1266,6 +1267,17 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             };
           };
 
+          if (options.tagsInput.bulkSingleQueryUrl) {
+            var terms = tags.map(encodeURIComponent);
+            return Api.get({
+              url: options.tagsInput.bulkSingleQueryUrl + "&terms=" + terms.join(",")
+            }).then(function (response) {
+              response.map(function (item) {
+                console.log(item);
+                tagsInput.addTag(item);
+              });
+            });
+          }
           // in case a query is involved...doesn't hurt to use even if not
           return Api.batch(function () {
             for (var i = 0, l = tags.length; i < l; i++) {

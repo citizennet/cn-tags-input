@@ -1308,10 +1308,15 @@
             };
 
             if (options.tagsInput.bulkSingleQueryUrl) {
-              let q = _.join(_.map(tags, tag => {return encodeURIComponent(tag);}, ","));
+              let terms = tags.map(encodeURIComponent);
               return Api.get({
-                url: options.tagsInput.bulkSingleQueryUrl + "?q=" + q
-              }).then(response => {_.forEach(response, item => tagsInput.addTag(item))});
+                url: options.tagsInput.bulkSingleQueryUrl + "&terms=" + terms.join(",")
+              }).then(response => {
+                response.map(item => {
+                  console.log(item);
+                  tagsInput.addTag(item);
+                });
+              });
             }
             // in case a query is involved...doesn't hurt to use even if not
             return Api.batch(function() {
