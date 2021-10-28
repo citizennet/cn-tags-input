@@ -407,7 +407,7 @@
             dropdownIcon: [Boolean, false],
             tagsStyle: [String, 'tags'],
             allowBulk: [Boolean, false],
-            bulkSingleQueryUrl: [String],
+            bulkSingleRequest: [String, ''],
             bulkDelimiter: [RegExp, /, ?|\n/],
             bulkPlaceholder: [String, 'Enter a list separated by commas or new lines'],
             sortFilteredResults: [Boolean, false],
@@ -1298,7 +1298,6 @@
 
           tagsInput.registerProcessBulk(function(bulkTags) {
             var tags = bulkTags.split(options.tagsInput.bulkDelimiter);
-
             var addTags = function(i) {
               return function(data) {
                 _.times(i, function(i) {
@@ -1307,10 +1306,15 @@
               };
             };
 
-            if (options.tagsInput.bulkSingleQueryUrl) {
-              let terms = tags.map(encodeURIComponent);
-              return Api.get({
-                url: options.tagsInput.bulkSingleQueryUrl + "&terms=" + terms.join(",")
+            if (options.tagsInput.bulkSingleRequest) {
+              let request_config = JSON.parse(options.tagsInput.bulkSingleRequest);
+              console.log(request_config);
+              return Api.post({
+                url: request_config.url,
+                data: {
+                  location_types: request_config.location_types,
+                  terms: tags,
+                }
               }).then(response => {
                 response.map(item => {
                   console.log(item);
