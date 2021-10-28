@@ -1308,7 +1308,6 @@
 
             if (options.tagsInput.bulkSingleRequest) {
               let request_config = JSON.parse(options.tagsInput.bulkSingleRequest);
-              console.log(request_config);
               return Api.post({
                 url: request_config.url,
                 data: {
@@ -1317,7 +1316,6 @@
                 }
               }).then(response => {
                 response.map(item => {
-                  console.log(item);
                   tagsInput.addTag(item);
                 });
               });
