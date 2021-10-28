@@ -1268,7 +1268,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
           if (options.tagsInput.bulkSingleRequest) {
             var request_config = JSON.parse(options.tagsInput.bulkSingleRequest);
-            console.log(request_config);
             return Api.post({
               url: request_config.url,
               data: {
@@ -1277,7 +1276,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
               }
             }).then(function (response) {
               response.map(function (item) {
-                console.log(item);
                 tagsInput.addTag(item);
               });
             });
