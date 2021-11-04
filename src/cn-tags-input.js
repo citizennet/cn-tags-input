@@ -407,6 +407,7 @@
             dropdownIcon: [Boolean, false],
             tagsStyle: [String, 'tags'],
             allowBulk: [Boolean, false],
+            bulkSingleRequest: [String, ''],
             bulkDelimiter: [RegExp, /, ?|\n/],
             bulkPlaceholder: [String, 'Enter a list separated by commas or new lines'],
             sortFilteredResults: [Boolean, false],
@@ -1297,7 +1298,6 @@
 
           tagsInput.registerProcessBulk(function(bulkTags) {
             var tags = bulkTags.split(options.tagsInput.bulkDelimiter);
-
             var addTags = function(i) {
               return function(data) {
                 _.times(i, function(i) {
@@ -1306,6 +1306,20 @@
               };
             };
 
+            if (options.tagsInput.bulkSingleRequest) {
+              let request_config = JSON.parse(options.tagsInput.bulkSingleRequest);
+              return Api.post({
+                url: request_config.url,
+                data: {
+                  location_types: request_config.location_types,
+                  terms: tags,
+                }
+              }).then(response => {
+                response.map(item => {
+                  tagsInput.addTag(item);
+                });
+              });
+            }
             // in case a query is involved...doesn't hurt to use even if not
             return Api.batch(function() {
               for(var i = 0, l = tags.length; i < l; i++) {

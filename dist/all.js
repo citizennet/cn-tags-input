@@ -404,6 +404,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           dropdownIcon: [Boolean, false],
           tagsStyle: [String, 'tags'],
           allowBulk: [Boolean, false],
+          bulkSingleRequest: [String, ''],
           bulkDelimiter: [RegExp, /, ?|\n/],
           bulkPlaceholder: [String, 'Enter a list separated by commas or new lines'],
           sortFilteredResults: [Boolean, false],
@@ -1257,7 +1258,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
         tagsInput.registerProcessBulk(function (bulkTags) {
           var tags = bulkTags.split(options.tagsInput.bulkDelimiter);
-
           var addTags = function addTags(i) {
             return function (data) {
               _.times(i, function (i) {
@@ -1266,6 +1266,20 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             };
           };
 
+          if (options.tagsInput.bulkSingleRequest) {
+            var request_config = JSON.parse(options.tagsInput.bulkSingleRequest);
+            return Api.post({
+              url: request_config.url,
+              data: {
+                location_types: request_config.location_types,
+                terms: tags
+              }
+            }).then(function (response) {
+              response.map(function (item) {
+                tagsInput.addTag(item);
+              });
+            });
+          }
           // in case a query is involved...doesn't hurt to use even if not
           return Api.batch(function () {
             for (var i = 0, l = tags.length; i < l; i++) {
