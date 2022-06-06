@@ -1708,14 +1708,13 @@
                   ng-mouseleave="handleHideTooltip($event)"
                   ng-repeat="tag in tagList.items">
                 <div class="overflows-to-tooltip"
-                  ng-bind-html="getDisplayHtml(tag)"/>
+                     ng-bind-html="getDisplayHtml(tag)"/>
                   <a class="remove-button"
                      ng-if="!ngDisabled"
                      ng-click="tagList.remove($index)">
                     <span>&times;</span>
                   </a>
-                <div class="tag-overflow-tooltip"
-                      ng-if="getDisplayText(tag).length > 30">
+                <div class="tag-overflow-tooltip">
                   {{ getDisplayText(tag) }}
                 </div>
               </li>
