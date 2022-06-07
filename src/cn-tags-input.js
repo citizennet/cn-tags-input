@@ -190,6 +190,19 @@
     return first.concat(second, third);
   }
 
+  function copyToClipboard(text) {
+    if (!_.isString(text)) return;
+    var copyElement = document.createElement("textarea");
+    copyElement.style.position = 'fixed';
+    copyElement.style.opacity = '0';
+    copyElement.textContent = text;
+    var body = document.getElementsByTagName('body')[0];
+    body.appendChild(copyElement);
+    copyElement.select();
+    document.execCommand('copy');
+    body.removeChild(copyElement);
+}
+
   var tagsInput = angular.module('cnTagsInput', []);
 
   /**
@@ -337,19 +350,7 @@
           });
         };
 
-        self.copyToClipboard = function() {
-          var copyElement = document.createElement("textarea");
-          copyElement.style.position = 'fixed';
-          copyElement.style.opacity = '0';
-          copyElement.textContent = self.items.map(
-            e => options.displayProperty && e[options.displayProperty] ? e[options.displayProperty] : e
-          ).join('\n');
-          var body = document.getElementsByTagName('body')[0];
-          body.appendChild(copyElement);
-          copyElement.select();
-          document.execCommand('copy');
-          body.removeChild(copyElement);
-        };
+        self.copyAllToClipboard = () => copyToClipboard(self.items.map(getTagText).join('\n'));
 
         self.destroy = function() {
           empty(self);
@@ -607,6 +608,20 @@
             return $sce.trustAsHtml(scope.getDisplayText(tag));
           };
 
+          scope.handleShowTooltip = (e) => {
+            var $target = $(e.target).closest('.tag-item.overflows-to-tooltip');
+            if ($target.outerWidth() === $target.offsetParent().width()) {
+              $target.find('.tag-overflow-tooltip').fadeIn(200);
+            }
+          };
+
+          scope.handleHideTooltip = (e) => {
+            $(e.target)
+              .closest('.tag-item.overflows-to-tooltip')
+              .find('.tag-overflow-tooltip')
+              .fadeOut(200);
+          };
+
           scope.track = function(tag) {
             return tag[options.displayProperty];
           };
@@ -831,6 +846,7 @@
           function handleDivClick(e) {
             var $target = $(e.target);
             if(!$target.closest('.suggestion').length &&
+               !$target.closest('.overflows-to-tooltip').length &&
                // we don't want any of the buttons underneath to trigger
                !$target.parent().hasClass('help-block')) {
               e.preventDefault();
@@ -951,8 +967,7 @@
                   text: formatItemText(text, group.formatter),
                   value: text,
                   key: key,
-                  childKey: prop/*,
-                  tagClass: options.tagClasses && options.tagClasses[key] || options.tagClass*/
+                  childKey: prop
                 };
 
             if(!_.find(group.items, toAdd)) {
@@ -1687,15 +1702,21 @@
             </span>
             <ul class="tag-list"
                 ng-if="options.tagsStyle !== 'list' && !options.hideTags && options.maxTags !== 1">
-              <li class="tag-item label {{options.tagClass}}"
-                  ng-repeat="tag in tagList.items"
-                  ng-class="{ selected: tag == tagList.selected }">
-                <span ng-bind-html="getDisplayHtml(tag)"/>
-                <a class="remove-button"
-                   ng-if="!ngDisabled"
-                   ng-click="tagList.remove($index)">
-                  <span>&times;</span>
-                </a>
+              <li class="tag-item label {{options.tagClass}} overflows-to-tooltip"
+                  ng-class="{ selected: tag == tagList.selected }"
+                  ng-mouseenter="handleShowTooltip($event)"
+                  ng-mouseleave="handleHideTooltip($event)"
+                  ng-repeat="tag in tagList.items">
+                <div class="overflows-to-tooltip"
+                     ng-bind-html="getDisplayHtml(tag)"/>
+                  <a class="remove-button"
+                     ng-if="!ngDisabled"
+                     ng-click="tagList.remove($index)">
+                    <span>&times;</span>
+                  </a>
+                <div class="tag-overflow-tooltip">
+                  {{ getDisplayText(tag) }}
+                </div>
               </li>
             </ul>
             <button ng-if="options.showButton && options.dropdownIcon"
@@ -1726,7 +1747,7 @@
           <button
             class="btn btn-default btn-xs"
             ng-show="options.allowBulk && !showBulk && tagList.items.length"
-            ng-click="tagList.copyToClipboard()"
+            ng-click="tagList.copyAllToClipboard()"
           > <i class="fa fa-copy"/> Copy
           </button>
         </div>
