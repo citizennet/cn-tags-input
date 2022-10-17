@@ -201,7 +201,14 @@
     copyElement.select();
     document.execCommand('copy');
     body.removeChild(copyElement);
-}
+  }
+  
+  function stripHtml(html)
+  {
+    let tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  }
 
   var tagsInput = angular.module('cnTagsInput', []);
 
@@ -350,7 +357,7 @@
           });
         };
 
-        self.copyAllToClipboard = () => copyToClipboard(self.items.map(getTagText).join('\n'));
+        self.copyAllToClipboard = () => copyToClipboard(self.items.map(getTagText).map(stripHtml).join('\n'));
 
         self.destroy = function() {
           empty(self);
