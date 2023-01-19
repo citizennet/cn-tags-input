@@ -651,9 +651,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             ngModelCtrl.$setValidity('tv4-401', value && options.maxTags ? value.length <= options.maxTags : true);
             ngModelCtrl.$setValidity('tv4-302', value ? angular.isDefined(options.minTags) ? value.length >= options.minTags : true : false);
           } else {
-            if (!init) {
-              ngModelCtrl.$setValidity('tv4-302', !options.required || !angular.isUndefined(value));
-            }
+            ngModelCtrl.$setValidity('tv4-302', !options.required || !angular.isUndefined(value));
           }
 
           first = false;
