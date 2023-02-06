@@ -166,6 +166,50 @@
     }
   }
 
+  function sortResults(results, tag, displayProperty) {
+    const valueFor = val => {
+      return displayProperty && val[displayProperty] ? val[displayProperty] : val;
+    };
+    var first = _.remove(results, result => {
+      return _.startsWith(valueFor(result), valueFor(tag));
+    });
+    first = _.sortBy(first, [
+      result => { return valueFor(result).length; }
+    ]);
+    const reTag = new RegExp(valueFor(tag), "i");
+    var second = _.remove(results, result => {
+      return reTag.test(valueFor(result));
+    });
+    second = _.sortBy(second, [
+      result => { return valueFor(result).search(reTag);},
+      result => { return valueFor(result).length; }
+    ]);
+    var third = _.sortBy(results, [
+      result => { return valueFor(result).length; }
+    ]);
+    return first.concat(second, third);
+  }
+
+  function copyToClipboard(text) {
+    if (!_.isString(text)) return;
+    var copyElement = document.createElement("textarea");
+    copyElement.style.position = 'fixed';
+    copyElement.style.opacity = '0';
+    copyElement.textContent = text;
+    var body = document.getElementsByTagName('body')[0];
+    body.appendChild(copyElement);
+    copyElement.select();
+    document.execCommand('copy');
+    body.removeChild(copyElement);
+  }
+  
+  function stripHtml(html)
+  {
+    let tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  }
+
   var tagsInput = angular.module('cnTagsInput', []);
 
   /**
@@ -214,6 +258,7 @@
    * @param {boolean=} [hideTags=false] Flag indicating whether to hide tag list (for manually displaying tag list in other way)
    * @param {boolean=} [dropdownIcon=false] Flag to show icon on right side
    * @param {string=} [tagsStyle='tags'] Default tags style
+   * @param {boolean=} sortFilteredResults Flag to set whether to sort autocomplete list
    */
   tagsInput.directive('tagsInput', [
     "$timeout", "$document", "tagsInputConfig", "$sce", "$rootScope",
@@ -281,7 +326,6 @@
           else {
             events.trigger('invalid-tag', {$tag: tag, $event: 'invalid-tag'});
           }
-
           return tag;
         };
 
@@ -312,6 +356,8 @@
             events.trigger('tag-removed', {$tag: tag, $event: 'tag-removed'});
           });
         };
+
+        self.copyAllToClipboard = () => copyToClipboard(self.items.map(getTagText).map(stripHtml).join('\n'));
 
         self.destroy = function() {
           empty(self);
@@ -369,8 +415,10 @@
             dropdownIcon: [Boolean, false],
             tagsStyle: [String, 'tags'],
             allowBulk: [Boolean, false],
+            bulkSingleRequest: [String, ''],
             bulkDelimiter: [RegExp, /, ?|\n/],
             bulkPlaceholder: [String, 'Enter a list separated by commas or new lines'],
+            sortFilteredResults: [Boolean, false],
             showClearAll: [Boolean, false],
             showClearCache: [Boolean, false],
             showButton: [Boolean, false]
@@ -480,10 +528,25 @@
             };
           }
 
+          function inlineChangeTags() {
+            return function() {
+              if (arguments.length > 0 && _.isArray(arguments[0].$tag)) {
+                let newTags = arguments[0].$tag;
+                const isObjectArray = _.every(newTags, (v) => typeof v === 'object' && v !== null && options.displayProperty && v[options.displayProperty]);
+                if (isObjectArray) {
+                  if (scope.tagList && scope.tagList.items && newTags) {
+                    scope.tagList.items = newTags;
+                  }
+                }
+              }
+            };
+          }
+
           events
             .on('tag-added', beforeAndAfter(scope.onBeforeTagAdded, scope.onTagAdded))
             .on('tag-removed', beforeAndAfter(scope.onBeforeTagRemoved, scope.onTagRemoved))
             .on('tag-changed', beforeAndAfter(scope.onBeforeTagChanged, scope.onTagChanged))
+            .on('tag-changed', inlineChangeTags())
             .on('tag-init', scope.onInit)
             .on('tag-added tag-removed', function(e) {
               if(!options.maxTags || options.maxTags > scope.tagList.items.length) {
@@ -498,6 +561,9 @@
                 }
                 else {
                   scope.tags = getArrayModelVal(scope.tagList.items, options);
+                }
+                if (scope.tagList.items.length >= options.minTags) {
+                  ngModelCtrl.$setValidity('tv4-400', true);
                 }
               }
               else {
@@ -547,6 +613,20 @@
 
           scope.getDisplayHtml = function(tag) {
             return $sce.trustAsHtml(scope.getDisplayText(tag));
+          };
+
+          scope.handleShowTooltip = (e) => {
+            var $target = $(e.target).closest('.tag-item.overflows-to-tooltip');
+            if ($target.outerWidth() === $target.offsetParent().width()) {
+              $target.find('.tag-overflow-tooltip').fadeIn(200);
+            }
+          };
+
+          scope.handleHideTooltip = (e) => {
+            $(e.target)
+              .closest('.tag-item.overflows-to-tooltip')
+              .find('.tag-overflow-tooltip')
+              .fadeOut(200);
           };
 
           scope.track = function(tag) {
@@ -775,6 +855,7 @@
           function handleDivClick(e) {
             var $target = $(e.target);
             if(!$target.closest('.suggestion').length &&
+               !$target.closest('.overflows-to-tooltip').length &&
                // we don't want any of the buttons underneath to trigger
                !$target.parent().hasClass('help-block')) {
               e.preventDefault();
@@ -895,8 +976,7 @@
                   text: formatItemText(text, group.formatter),
                   value: text,
                   key: key,
-                  childKey: prop/*,
-                  tagClass: options.tagClasses && options.tagClasses[key] || options.tagClass*/
+                  childKey: prop
                 };
 
             if(!_.find(group.items, toAdd)) {
@@ -1006,7 +1086,25 @@
                 if(scope.isGroups) {
                   _.each(items, function(group) {
                     group.items = getDifference(group.items, tags);
-                    if(query) group.items = $filter('cnFilter')(group.items, filterBy);
+                    if(query) {
+                      let reconciliateItems = {};
+                      group.items.map((item, idx) => {
+                        item.__uniqueid = _.uniqueId('__uniqueid');
+                        reconciliateItems[item.__uniqueid] =_.cloneDeep(item);
+                        if ('key' in item) delete item.key;
+                        if ('childKey' in item) delete item.childKey;
+                      });
+                      group.items = $filter('cnFilter')(group.items, filterBy);
+                      if (options.tagsInput.sortFilteredResults) {
+                        group.items = sortResults(group.items, filterBy, options.tagsInput.displayProperty);
+                      }
+                      group.items.map((item) => {
+                        let ref = reconciliateItems[item.__uniqueid];
+                        if ('key' in ref) item.key = ref.key;
+                        if ('childKey' in ref) item.childKey = ref.childKey;
+                        delete item.__uniqueid;
+                      });
+                    }
 
                     group.items = group.items.slice(0, options.maxResultsToShow);
                   });
@@ -1018,6 +1116,10 @@
                   items = getDifference(items, tags);
                   if(query && !options.skipFiltering) {
                     items = $filter('cnFilter')(items, filterBy);
+                  }
+
+                  if (options.tagsInput.sortFilteredResults) {
+                    items = sortResults(items, filterBy, options.tagsInput.displayProperty);
                   }
 
                   items = items.slice(0, options.maxResultsToShow);
@@ -1220,7 +1322,6 @@
 
           tagsInput.registerProcessBulk(function(bulkTags) {
             var tags = bulkTags.split(options.tagsInput.bulkDelimiter);
-
             var addTags = function(i) {
               return function(data) {
                 _.times(i, function(i) {
@@ -1229,6 +1330,20 @@
               };
             };
 
+            if (options.tagsInput.bulkSingleRequest) {
+              let request_config = JSON.parse(options.tagsInput.bulkSingleRequest);
+              return Api.post({
+                url: request_config.url,
+                data: {
+                  location_types: request_config.location_types,
+                  terms: tags,
+                }
+              }).then(response => {
+                response.map(item => {
+                  tagsInput.addTag(item);
+                });
+              });
+            }
             // in case a query is involved...doesn't hurt to use even if not
             return Api.batch(function() {
               for(var i = 0, l = tags.length; i < l; i++) {
@@ -1249,6 +1364,9 @@
                     if(!options.skipFiltering) {
                       var filterBy = tag;
                       results = $filter('cnFilter')(results, filterBy);
+                    }
+                    if (options.tagsInput.sortFilteredResults) {
+                      results = sortResults(results, tag, options.tagsInput.displayProperty);
                     }
                     addTags(times)(results);
                   }
@@ -1593,15 +1711,21 @@
             </span>
             <ul class="tag-list"
                 ng-if="options.tagsStyle !== 'list' && !options.hideTags && options.maxTags !== 1">
-              <li class="tag-item label {{options.tagClass}}"
-                  ng-repeat="tag in tagList.items"
-                  ng-class="{ selected: tag == tagList.selected }">
-                <span ng-bind-html="getDisplayHtml(tag)"/>
-                <a class="remove-button"
-                   ng-if="!ngDisabled"
-                   ng-click="tagList.remove($index)">
-                  <span>&times;</span>
-                </a>
+              <li class="tag-item label {{options.tagClass}} overflows-to-tooltip"
+                  ng-class="{ selected: tag == tagList.selected }"
+                  ng-mouseenter="handleShowTooltip($event)"
+                  ng-mouseleave="handleHideTooltip($event)"
+                  ng-repeat="tag in tagList.items">
+                <div class="overflows-to-tooltip"
+                     ng-bind-html="getDisplayHtml(tag)"/>
+                  <a class="remove-button"
+                     ng-if="!ngDisabled"
+                     ng-click="tagList.remove($index)">
+                    <span>&times;</span>
+                  </a>
+                <div class="tag-overflow-tooltip">
+                  {{ getDisplayText(tag) }}
+                </div>
               </li>
             </ul>
             <button ng-if="options.showButton && options.dropdownIcon"
@@ -1628,6 +1752,12 @@
             ng-show="options.showClearCache && tagList.suggestionList"
             ng-click="tagList.suggestionList.clearCache($event, newTag.text)"
           > <i class="fa fa-repeat"/> Update Data
+          </button>
+          <button
+            class="btn btn-default btn-xs"
+            ng-show="options.allowBulk && !showBulk && tagList.items.length"
+            ng-click="tagList.copyAllToClipboard()"
+          > <i class="fa fa-copy"/> Copy
           </button>
         </div>
         <div ng-show="showBulk" class="clearfix">

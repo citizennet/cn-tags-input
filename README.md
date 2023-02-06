@@ -8,3 +8,6 @@ CitizenNet fork of ngTagsInput which is now wildly different
 * npm install --global gulp-jshint gulp-jshint
 * npm install
 
+## Development
+`nvm exec 10.17 npx gulp`
+
